@@ -183,6 +183,17 @@ Svc::FatalHandlerComponentImpl fatalHandler
 #endif
 ;
 
+Ref::MathSenderComponentImpl mathSender
+#if FW_OBJECT_NAMES == 1
+    ("mathSender")
+#endif
+;
+
+Ref::MathReceiverComponentImpl mathReceiver
+#if FW_OBJECT_NAMES == 1
+    ("mathReceiver")
+#endif
+;
 
 #if FW_OBJECT_REGISTRATION == 1
 
@@ -253,6 +264,10 @@ void constructApp(int port_number, char* hostname) {
 	fatalHandler.init(0);
 	health.init(25,0);
 	pingRcvr.init(10);
+
+    mathSender.init(10,0);
+    mathReceiver.init(10,0);
+
     // Connect rate groups to rate group driver
     constructRefArchitecture();
 
@@ -272,10 +287,16 @@ void constructApp(int port_number, char* hostname) {
 	health.regCommands();
 	pingRcvr.regCommands();
 
+    mathSender.regCommands();
+    mathReceiver.regCommands();
+
     // read parameters
     prmDb.readParamFile();
     recvBuffComp.loadParameters();
     sendBuffComp.loadParameters();
+
+    sendBuffComp.loadParameters();
+    mathReceiver.loadParameters();
 
     // set health ping entries
 
@@ -316,6 +337,8 @@ void constructApp(int port_number, char* hostname) {
     fileUplink.start(0, 100, 10*1024);
 
     pingRcvr.start(0, 100, 10*1024);
+
+    mathSender.start(0,100,10*1024);
 
     // Initialize socket server
     sockGndIf.startSocketTask(100, port_number, hostname);
@@ -367,6 +390,8 @@ void exitTasks(void) {
     fileUplink.exit();
     fileDownlink.exit();
     cmdSeq.exit();
+
+    mathSender.exit();
 }
 
 void print_usage() {

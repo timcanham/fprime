@@ -87,7 +87,11 @@ REF_MODULES := \
 	Ref/RecvBuffApp \
 	Ref/SendBuffApp \
 	Ref/SignalGen \
-	Ref/PingReceiver
+	Ref/PingReceiver \
+	Ref/MathSender \
+	Ref/MathReceiver \
+	Ref/MathPorts \
+	Ref/MathTypes
 	
 Ref_MODULES := \
 	\
