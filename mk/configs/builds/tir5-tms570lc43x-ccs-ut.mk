@@ -1,2 +1,2 @@
-COMPILER := ccs7.0-debug-ut
-TARGET := nortos-tms570lc43x
+COMPILER := ccs9.0-debug-ut
+TARGET := freertos-tms570lc43x

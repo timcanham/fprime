@@ -185,6 +185,9 @@ RPI_MODULES := \
 	$(OS_MODULES) \
 	\
   	$(UTILS_MODULES)
+  	
+R5_MODULES := \
+    R5/TiR5FreeRtos
 
 acdev_MODULES := \
 	$(FW_MODULES) \
@@ -203,7 +206,7 @@ OTHER_MODULES := \
 
 # List deployments
 
-DEPLOYMENTS := Ref acdev RPI
+DEPLOYMENTS := Ref acdev RPI R5
 
 # Location of ground/gse software. Autocoded dictionary elements are copied here.
 GDS_MODULE := Gse

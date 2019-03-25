@@ -18,6 +18,8 @@ DOXYGEN :=
 JOBS := -j 4
 #JOBS =
 
+TI_CCS_DIR :=
+
 -include $(BUILD_ROOT)/mk/configs/target/wind-$(TARGET).mk
 
 CRC := $(BUILD_ROOT)/mk/bin/run_file_crc.sh
