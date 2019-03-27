@@ -1,2 +1,2 @@
-COMPILER := ccs9.0-debug-opt
+COMPILER := ccs8.3.0-debug-opt
 TARGET := freertos-tms570lc43x

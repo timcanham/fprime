@@ -1,6 +1,6 @@
 include $(BUILD_ROOT)/mk/configs/compiler/include_common.mk
 include $(BUILD_ROOT)/mk/configs/compiler/defines_common.mk
-include $(BUILD_ROOT)/mk/configs/compiler/ccs9.0-common.mk
+include $(BUILD_ROOT)/mk/configs/compiler/ccs8.3.0-common.mk
 
 CCS_R5_COMMON_FLAGS :=	$(COMMON_DEFINES) \
 								$(CCS_FLAGS_COMMON) \
@@ -26,7 +26,7 @@ LINK_LIB_FLAGS := r
 POST_LINK_LIB := $(PYTHON_BIN) $(BUILD_ROOT)/mk/bin/empty.py
 
 LINK_LIBS := 	-l$(TI_CCS_DIR)/lib/libc.a \
-				$(BUILD_ROOT)/R5/TiHal/source/HL_sys_link.cmd
+				$(BUILD_ROOT)/R5/TiR5FreeRtos/source/HL_sys_link.cmd
 
 LINK_BIN :=  $(CC)
 LINK_BIN_FLAGS := 	-mv7R5 \

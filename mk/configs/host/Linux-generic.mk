@@ -18,7 +18,7 @@ DOXYGEN :=
 JOBS := -j 4
 #JOBS =
 
-TI_CCS_DIR := /opt/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS
+TI_CCS_DIR := /opt/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.5.LTS
 
 -include $(BUILD_ROOT)/mk/configs/target/wind-$(TARGET).mk
 

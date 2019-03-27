@@ -58,3 +58,7 @@ core
 
 .vscode
 
+*dead_funcs.xml
+*linkInfo.xml
+*.map
+

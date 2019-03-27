@@ -1,4 +1,4 @@
-include $(BUILD_ROOT)/mk/configs/compiler/ccs9.0_r5_common.mk
+include $(BUILD_ROOT)/mk/configs/compiler/ccs8.3.0_r5_common.mk
 
 CFLAGS := 	$(DEBUG) \
 			$(OPT_SPEED) \
@@ -15,5 +15,5 @@ CXXFLAGS := $(DEBUG) \
 			$(CCS_R5_COMMON_INCLUDES)
 				
 
-COMPILER := nortos-tms570lc43x-debug-opt-ccs9.0
+COMPILER := nortos-tms570lc43x-debug-opt-ccs8.3.0
 
