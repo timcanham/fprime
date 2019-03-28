@@ -14,3 +14,5 @@ FILE_HASH := $(BUILD_ROOT)/mk/bin/run_file_hash.sh
 MAKE = make
 JOBS = -j 4
 #JOBS =
+
+TI_CCS_DIR := /Applications/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.5.LTS
