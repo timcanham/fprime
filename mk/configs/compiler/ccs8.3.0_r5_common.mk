@@ -14,7 +14,8 @@ CCS_R5_COMMON_FLAGS :=	$(COMMON_DEFINES) \
 CCS_R5_COMMON_INCLUDES := 	$(COMMON_INCLUDES) \
 							$(CCS_INCLUDES_COMMON) \
 							$(INCLUDE_PATH)$(TI_CCS_DIR)/include \
-							$(INCLUDE_PATH)$(BUILD_ROOT)/R5/TiR5FreeRtos/include
+							$(INCLUDE_PATH)$(BUILD_ROOT)/R5/TiR5FreeRtos/include \
+							$(INCLUDE_PATH)$(BUILD_ROOT)/Fw/Types/Linux
 
 COVERAGE := 
 

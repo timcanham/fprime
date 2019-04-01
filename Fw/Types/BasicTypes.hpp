@@ -66,7 +66,11 @@ typedef unsigned int NATIVE_UINT_TYPE; //!< native unsigned integer type declara
 #endif
 
 #else
+#if defined BUILD_TIR5
+  #define POINTER_CAST U32
+#else
  #error Unsupported compiler!
+#endif
 #endif
 
 // compile-time assert
@@ -121,7 +125,7 @@ typedef float   F32; //!< 32-bit floating point
 #endif
 
 // Not ideal, but VxWorks doesn't have strnlen
-#ifdef __VXWORKS__
+#if defined __VXWORKS__ || defined BUILD_TIR5
 NATIVE_INT_TYPE strnlen(const char *s, NATIVE_INT_TYPE maxlen);
 #endif
 

@@ -87,7 +87,14 @@ SRC_RASPIAN =   Pthreads/Queue.cpp \
 				Linux/IntervalTimer.cpp \
 				Posix/Mutex.cpp \
 				Linux/FileSystem.cpp
+				
+SRC_TIR5 = 		FreeRtos/Task.cpp 
 
+
+#\
+#				FreeRtos/Queue.cpp \
+#				FreeRtos/Mutex.cpp
+				
 				
 
 

@@ -187,7 +187,12 @@ RPI_MODULES := \
   	$(UTILS_MODULES)
   	
 R5_MODULES := \
-    R5/TiR5FreeRtos
+    R5/TiR5FreeRtos \
+    \
+    $(FW_MODULES) \
+    \
+	$(OS_MODULES)
+    
 
 acdev_MODULES := \
 	$(FW_MODULES) \

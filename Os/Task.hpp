@@ -45,7 +45,7 @@ namespace Os {
         private:
             
             POINTER_CAST m_handle; //!< handle for implementation specific task
-            NATIVE_INT_TYPE m_identifier; //!< thread independent identifer
+            NATIVE_INT_TYPE m_identifier; //!< thread independent identifier
             TaskString m_name; //!< object name
             NATIVE_INT_TYPE m_affinity; //!< CPU affinity for SMP targets
 
