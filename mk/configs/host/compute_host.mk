@@ -10,6 +10,12 @@ ifeq ("$(HOST)","Linux")
     NATIVE_BUILD = LINUX
 endif
 
+ifeq ("$(findstring MINGW32,$(HOST))","MINGW32") # may need to set LXML_PATH and CHEETAH_PATH if they are somewhere other than where Python is installed
+    HOST = MINGW
+    NATIVE_BUILD = $(HOST)
+endif
+
+
 ifeq ("$(HOST)","Darwin")
     NATIVE_BUILD = DARWIN
 endif
