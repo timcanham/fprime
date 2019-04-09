@@ -3,5 +3,6 @@ BUILDS := \
 	LINUX \
 	RASPIAN \
 	RASPIAN-CROSS \
-	TIR5
+	TIR5 \
+	MINGW
 
