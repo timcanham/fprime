@@ -88,11 +88,9 @@ SRC_RASPIAN =   Pthreads/Queue.cpp \
 				Posix/Mutex.cpp \
 				Linux/FileSystem.cpp
 				
-SRC_TIR5 = 		FreeRtos/Task.cpp 
-
-
-#\
-#				FreeRtos/Queue.cpp \
+SRC_TIR5 = 		FreeRtos/Task.cpp \
+				FreeRtos/TiR5Task.cpp \ 
+				FreeRtos/Queue.cpp
 #				FreeRtos/Mutex.cpp
 				
 				

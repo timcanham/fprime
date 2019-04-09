@@ -42,6 +42,9 @@ namespace Os {
             
             static void registerTaskRegistry(TaskRegistry* registry);
             
+            static bool isISR(void); //!< returns true if running within an ISR
+            static void setIsISR(bool is); //!< set ISR flag for non autodetect scenarios
+
         private:
             
             POINTER_CAST m_handle; //!< handle for implementation specific task
