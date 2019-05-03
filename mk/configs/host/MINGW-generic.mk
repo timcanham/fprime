@@ -15,14 +15,15 @@ TOUCH := touch
 NM := nm
 MAKE := make
 
+export PYTHON_BASE ?= /c/Python27
+export PYTHON_BIN := $(PYTHON_BASE)/python.exe
+export CHEETAH_COMPILE ?= $(PYTHON_BASE)/Scripts/cheetah-compile.exe
+
 SLOC_COUNTER := ${BUILD_ROOT}/mk/bin/ncsl -v -i
 PROCESS_SLOC := ${BUILD_ROOT}/mk/bin/process_ncsl_sloc.py
 FILE_HASH := $(PYTHON_BIN) ${BUILD_ROOT}/mk/bin/run_file_hash.py
-GEN_VERSION := $(PYTHON_BIN) $(BUILD_ROOT)/mk/bin/gen_git_version.py
+GEN_VERSION := $(PYTHON_BIN) $(BUILD_ROOT)/mk/bin/gen_git_version_mingw.py
 
-export PYTHON_BASE ?= c:\Python27
-export PYTHON_BIN := $(PYTHON_BASE)\python.exe
-export CHEETAH_COMPILE ?= $(PYTHON_BASE)\Scripts\cheetah-compile.exe
 
 HOST_BIN_SUFFIX := .exe
 JOBS = -j 4

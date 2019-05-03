@@ -94,8 +94,6 @@ static void tickTask( void *pvParameters ) {
 uint8	emacAddress[6U] = 	{0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
 uint32 	emacPhyAddress	=	1U;
 
-extern fsw_main(void);
-
 int main(void)
 {
 /* USER CODE BEGIN (3) */
