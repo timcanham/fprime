@@ -2,7 +2,8 @@
 #define __R5_COMPONENTS_HEADER__
 
 void exitTasks(void);
-void constructApp(int port_number, char* hostname);
+
+void constructApp(void);
 
 #include <Svc/ActiveRateGroup/ActiveRateGroupImpl.hpp>
 #include <Svc/RateGroupDriver/RateGroupDriverImpl.hpp>

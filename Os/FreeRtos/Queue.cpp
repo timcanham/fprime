@@ -93,9 +93,9 @@ namespace Os {
         BaseType_t stat = errQUEUE_FULL;
 
         if (QUEUE_BLOCKING == block) {
-            while (errQUEUE_FULL == stat) {
+            do {
                 stat = xQueueReceive(q_ptr->handle, (void*)buffer, portMAX_DELAY );
-            }
+            } while (errQUEUE_FULL == stat);
         } else {
             stat = xQueueReceive(q_ptr->handle, (void*)buffer, 0 );
         }

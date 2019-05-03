@@ -41,4 +41,6 @@ enum {
     TELEM_ID_FILTER_SIZE = 25, //!< Size of telemetry ID filter
 };
 
+static const ACTIVE_LOGGER_FILE = false;
+
 #endif /* ACTIVELOGGER_ACTIVELOGGERIMPLCFG_HPP_ */

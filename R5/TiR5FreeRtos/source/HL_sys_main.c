@@ -84,7 +84,7 @@ static void tickTask( void *pvParameters ) {
         xQueueReceive( tickQueue, &val, portMAX_DELAY );
         gioSetBit(gioPORTB,7,LEDState);
         LEDState = 1 - LEDState;
-//        printf("Val: %d\n",val);
+        //printf("Val: %d\n",val);
     }
 }
 
@@ -94,6 +94,8 @@ static void tickTask( void *pvParameters ) {
 uint8	emacAddress[6U] = 	{0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
 uint32 	emacPhyAddress	=	1U;
 
+extern fsw_main(void);
+
 int main(void)
 {
 /* USER CODE BEGIN (3) */
@@ -102,18 +104,20 @@ int main(void)
 
     printf("Startup!\n");
 
-    tickQueue = xQueueCreate( 10, sizeof( unsigned long ) );
+    fsw_main();
 
-    assert(tickQueue);
-
-    BaseType_t stat = xTaskCreate( tickTask,                   /* The function that implements the task. */
-                "ticker",                                   /* The text name assigned to the task - for debug only as it is not used by the kernel. */
-                configMINIMAL_STACK_SIZE,               /* The size of the stack to allocate to the task. */
-                0, /* The parameter passed to the task - just to check the functionality. */
-                tskIDLE_PRIORITY + 1 ,        /* The priority assigned to the task. */
-                NULL );                                 /* The task handle is not required, so NULL is passed. */
-
-    assert(stat == pdPASS);
+//    tickQueue = xQueueCreate( 10, sizeof( unsigned long ) );
+//
+//    assert(tickQueue);
+//
+//    BaseType_t stat = xTaskCreate( tickTask,                   /* The function that implements the task. */
+//                "ticker",                                   /* The text name assigned to the task - for debug only as it is not used by the kernel. */
+//                configMINIMAL_STACK_SIZE,               /* The size of the stack to allocate to the task. */
+//                0, /* The parameter passed to the task - just to check the functionality. */
+//                tskIDLE_PRIORITY + 1 ,        /* The priority assigned to the task. */
+//                NULL );                                 /* The task handle is not required, so NULL is passed. */
+//
+//    assert(stat == pdPASS);
 
     vTaskStartScheduler();
 /* USER CODE END */

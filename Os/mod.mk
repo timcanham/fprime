@@ -90,8 +90,10 @@ SRC_RASPIAN =   Pthreads/Queue.cpp \
 				
 SRC_TIR5 = 		FreeRtos/Task.cpp \
 				FreeRtos/TiR5Task.cpp \ 
-				FreeRtos/Queue.cpp
-#				FreeRtos/Mutex.cpp
+				FreeRtos/Queue.cpp \
+				FreeRtos/Mutex.cpp \
+				FreeRtos/LogMsg.cpp \
+				TIR5/IntervalTimer.cpp
 				
 				
 

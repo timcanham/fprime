@@ -7,7 +7,9 @@
 
 #include <Svc/ActiveLogger/ActiveLoggerImpl.hpp>
 #include <Fw/Types/Assert.hpp>
+#if ACTIVE_LOGGER_FILE
 #include <Os/File.hpp>
+#endif
 
 namespace Svc {
 
@@ -223,7 +225,7 @@ namespace Svc {
 
     void ActiveLoggerImpl::ALOG_DUMP_EVENT_LOG_cmdHandler(FwOpcodeType opCode, U32 cmdSeq, const Fw::CmdStringArg& filename) {
         // Walk through each event type and write it to the file
-
+#if ACTIVE_LOGGER_FILE
         static const BYTE delimiter = 0xA5;
         // open the file
         Os::File file;
@@ -451,7 +453,7 @@ namespace Svc {
         file.close();
 
         this->log_ACTIVITY_HI_ALOG_FILE_WRITE_COMPLETE(numRecords);
-
+#endif
         this->cmdResponse_out(opCode,cmdSeq,Fw::COMMAND_OK);
     }
 

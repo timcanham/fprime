@@ -187,12 +187,32 @@ RPI_MODULES := \
   	$(UTILS_MODULES)
   	
 R5_MODULES := \
+	R5/Top \
+	\
     R5/TiR5FreeRtos \
     \
     $(FW_MODULES) \
     \
-	$(OS_MODULES)
-    
+	$(OS_MODULES) \
+	\
+	Svc/CmdDispatcher \
+	Svc/ActiveRateGroup \
+	Svc/RateGroupDriver \
+	Svc/Sched \
+	Svc/TlmChan \
+	Svc/Time \
+	Svc/Cycle \
+	Svc/ActiveLogger \
+	Svc/Fatal \
+	Svc/PolyIf \
+	Svc/PolyDb \
+	Svc/Ping \
+	Svc/Health \
+	Svc/WatchDog \
+    Svc/AssertFatalAdapter \
+    Svc/FatalHandler \
+	\
+  	$(UTILS_MODULES)
 
 acdev_MODULES := \
 	$(FW_MODULES) \
