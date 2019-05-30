@@ -1,10 +1,9 @@
 #include <Os/IntervalTimer.hpp>
 #include <Fw/Types/Assert.hpp>
-#include <R5/TiHal/include/HL_rti.h>
+//#include <R5/TiHal/include/HL_rti.h>
 #include <string.h>
 
 namespace Os {
-
     IntervalTimer::IntervalTimer() {
         memset(&this->m_startTime,0,sizeof(this->m_startTime));
         memset(&this->m_stopTime,0,sizeof(this->m_stopTime));
@@ -14,7 +13,8 @@ namespace Os {
     }
 
     void IntervalTimer::getRawTime(RawTime& time) {
-        time.upper = rtiGetMedResTimestamp();
+
+        time.upper = 0;
         time.lower = 0;
     }
 
@@ -33,7 +33,6 @@ namespace Os {
     void IntervalTimer::stop() {
         getRawTime(this->m_stopTime);
     }
-
 }
 
 
