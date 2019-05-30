@@ -132,7 +132,7 @@ uint32_t divider = 10;
 void vApplicationTickHook( void ) {
     count++;
     if (count % divider == 0) {
-        xQueueSendFromISR( tickQueue, (void*)count, NULL );
+        xQueueSendFromISR( tickQueue, (void*)&count, NULL );
     }
 }
 /* USER CODE END */
