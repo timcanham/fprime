@@ -17,6 +17,8 @@ SRC_DARWIN = LinuxGpioDriverComponentImplStub.cpp
 
 SRC_RASPIAN = LinuxGpioDriverComponentImpl.cpp
 
+SRC_RASPIAN-CROSS = LinuxGpioDriverComponentImpl.cpp
+
 SRC_LINUXRT = LinuxGpioDriverComponentImpl.cpp
 
 HDR = LinuxGpioDriverComponentImpl.hpp

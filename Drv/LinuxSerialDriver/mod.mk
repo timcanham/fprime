@@ -17,6 +17,8 @@ SRC_DARWIN = LinuxSerialDriverComponentImplStub.cpp
 
 SRC_RASPIAN = LinuxSerialDriverComponentImpl.cpp
 
+SRC_RASPIAN-CROSS = LinuxSerialDriverComponentImpl.cpp
+
 SRC_LINUXRT = LinuxSerialDriverComponentImpl.cpp
 
 HDR = LinuxSerialDriverComponentImpl.hpp

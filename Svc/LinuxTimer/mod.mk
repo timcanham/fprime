@@ -22,6 +22,8 @@ SRC_DARWIN = LinuxTimerComponentImplTaskDelay.cpp
 
 SRC_RASPIAN = LinuxTimerComponentImplTimerFd.cpp
 
+SRC_RASPIAN-CROSS = LinuxTimerComponentImplTimerFd.cpp
+
 HDR = LinuxTimerComponentImpl.hpp
 
 SUBDIRS = test

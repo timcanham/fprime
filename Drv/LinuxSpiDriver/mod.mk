@@ -17,6 +17,8 @@ SRC_DARWIN =  LinuxSpiDriverComponentImplStub.cpp
 
 SRC_RASPIAN =  LinuxSpiDriverComponentImpl.cpp
 
+SRC_RASPIAN-CROSS =  LinuxSpiDriverComponentImpl.cpp
+
 SRC_LINUXRT = LinuxSpiDriverComponentImpl.cpp
 
 HDR = LinuxSpiDriverComponentImpl.hpp
