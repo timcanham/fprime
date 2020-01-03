@@ -20,6 +20,8 @@ SRC_DARWIN = DarwinTimeImpl.cpp
 
 SRC_RASPIAN = LinuxTimeImpl.cpp
 
+SRC_RASPIAN-CROSS = LinuxTimeImpl.cpp
+
 HDR = LinuxTimeImpl.hpp
 
 SUBDIRS = test

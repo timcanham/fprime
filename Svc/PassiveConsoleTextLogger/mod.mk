@@ -16,4 +16,6 @@ SRC_DARWIN = Stub/PrintfLoggerImplStub.cpp
 
 SRC_RASPIAN = Stub/PrintfLoggerImplStub.cpp
 
+SRC_RASPIAN-CROSS = Stub/PrintfLoggerImplStub.cpp
+
 HDR = ConsoleTextLoggerImpl.hpp

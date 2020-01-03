@@ -24,3 +24,5 @@ SRC_CYGWIN =		SvcSocketGndIfImpl.cpp
 SRC_DARWIN =        SvcSocketGndIfImpl.cpp
 
 SRC_RASPIAN = 		SvcSocketGndIfImpl.cpp
+
+SRC_RASPIAN-CROSS = 		SvcSocketGndIfImpl.cpp
