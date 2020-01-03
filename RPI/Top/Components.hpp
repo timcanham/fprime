@@ -35,7 +35,7 @@
 
 void constructRPIArchitecture(void);
 void exitTasks(void);
-void constructApp(U32 port_number, char* hostname);
+bool constructApp(U32 port_number, char* hostname);
 
 extern Svc::RateGroupDriverImpl rateGroupDriverComp;
 extern Svc::ActiveRateGroupImpl rateGroup10HzComp;

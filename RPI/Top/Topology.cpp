@@ -82,7 +82,9 @@ Drv::LinuxGpioDriverComponentImpl gpio17Drv("gpio17Drv");
 
 Rpi::RpiDemoComponentImpl rpiDemo("rpiDemo");
 
-void constructApp(U32 port_number, char* hostname) {
+Os::Log osLogger;
+
+bool constructApp(U32 port_number, char* hostname) {
 
     // Initialize rate group driver
     rateGroupDriverComp.init();
@@ -198,31 +200,38 @@ void constructApp(U32 port_number, char* hostname) {
             Drv::LinuxSerialDriverComponentImpl::NO_FLOW,
             Drv::LinuxSerialDriverComponentImpl::PARITY_NONE,
             true)) {
-        return;
+        printf("UART open error!\n");
+        return false;
     }
 
     if (not spiDrv.open(0,0,Drv::SPI_FREQUENCY_1MHZ)) {
-        return;
+        printf("SPI open error!\n");
+        return false;
     }
 
     if (not ledDrv.open(21,Drv::LinuxGpioDriverComponentImpl::GPIO_OUT)) {
-        return;
+        printf("LED GPIO open error!\n");
+        return false;
     }
 
     if (not gpio23Drv.open(23,Drv::LinuxGpioDriverComponentImpl::GPIO_OUT)) {
-        return;
+        printf("GPIO 23 open error!\n");
+        return false;
     }
 
     if (not gpio24Drv.open(24,Drv::LinuxGpioDriverComponentImpl::GPIO_OUT)) {
-        return;
+        printf("GPIO 24 open error!\n");
+        return false;
     }
 
     if (not gpio25Drv.open(25,Drv::LinuxGpioDriverComponentImpl::GPIO_IN)) {
-        return;
+        printf("GPIO 25 open error!\n");
+        return false;
     }
 
     if (not gpio17Drv.open(17,Drv::LinuxGpioDriverComponentImpl::GPIO_IN)) {
-        return;
+        printf("GPIO 17 open error!\n");
+        return false;
     }
 
     uartDrv.startReadThread(100,10*1024,-1);
@@ -231,6 +240,8 @@ void constructApp(U32 port_number, char* hostname) {
     if (hostname != NULL && port_number != 0) {
         socketIpDriver.startSocketTask(100, 10 * 1024, hostname, port_number);
     }
+
+    return true;
 }
 
 void exitTasks(void) {

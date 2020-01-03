@@ -28,7 +28,7 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "CygWin")
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "arm-linux-gnueabihf")
 	set(SOURCE_FILES
 		"${CMAKE_CURRENT_LIST_DIR}/LinuxTimerComponentAi.xml"
-		"${CMAKE_CURRENT_LIST_DIR}/LinuxTimerComponentImplTimerFd.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/LinuxTimerComponentImplTaskDelay.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/LinuxTimerComponentImplCommon.cpp"
 	)
 else()

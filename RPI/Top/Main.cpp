@@ -48,7 +48,11 @@ int main(int argc, char* argv[]) {
 
     (void) printf("Hit Ctrl-C to quit\n");
 
-    constructApp(port_number, hostname);
+    bool stat = constructApp(port_number, hostname);
+    if (not stat) {
+        printf("Startup error!");
+        exit(-1);
+    }
 
     // register signal handlers to exit program
     signal(SIGINT,sighandler);
