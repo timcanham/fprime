@@ -22,7 +22,7 @@ SRC_DARWIN = LinuxTimerComponentImplTaskDelay.cpp
 
 SRC_RASPIAN = LinuxTimerComponentImplTimerFd.cpp
 
-SRC_RASPIAN-CROSS = LinuxTimerComponentImplTimerFd.cpp
+SRC_RASPIAN-CROSS = LinuxTimerComponentImplTaskDelay.cpp
 
 HDR = LinuxTimerComponentImpl.hpp
 
