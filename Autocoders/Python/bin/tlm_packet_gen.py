@@ -33,6 +33,7 @@ from fprime_ac.parsers import XmlTopologyParser
 
 from lxml import etree
 from Cheetah.Template import Template
+from fprime_ac.utils.buildroot import search_for_file, set_build_roots
 
 header_file_template = """
 
@@ -153,27 +154,27 @@ class TlmPacketParser(object):
         else:
             return None
         
-    def search_for_file(self,file_type, file_path):
-        '''
-        Searches for a given included port or serializable by looking in three places:
-        - The specified BUILD_ROOT
-        - The F Prime core
-        - The exact specified path
-        @param file_type: type of file searched for
-        @param file_path: path to look for based on offset
-        @return: full path of file
-        '''
-        core = os.environ.get("FPRIME_CORE_DIR", BUILD_ROOT)
-        for possible in [BUILD_ROOT, core, None]:
-            if not possible is None:
-                checker = os.path.join(possible, file_path)
-            else:
-                checker = file_path
-            if os.path.exists(checker):
-                DEBUG.debug("%s xml type description file: %s" % (file_type,file_path))
-                return checker
-        else:
-            return None
+#    def search_for_file(self,file_type, file_path):
+#        '''
+#        Searches for a given included port or serializable by looking in three places:
+#        - The specified BUILD_ROOT
+#        - The F Prime core
+#        - The exact specified path
+#        @param file_type: type of file searched for
+#        @param file_path: path to look for based on offset
+#        @return: full path of file
+#        '''
+#        core = os.environ.get("FPRIME_CORE_DIR", BUILD_ROOT)
+#        for possible in [BUILD_ROOT, core, None]:
+#            if not possible is None:
+#                checker = os.path.join(possible, file_path)
+#            else:
+#                checker = file_path
+#            if os.path.exists(checker):
+#                DEBUG.debug("%s xml type description file: %s" % (file_type,file_path))
+#                return checker
+#        else:
+#            return None
      
     def generate_channel_size_dict(self, the_parsed_topology_xml, xml_filename):
         """
@@ -216,13 +217,13 @@ class TlmPacketParser(object):
             if (parsed_xml_dict[comp_type].get_serializable_type_files() != None):
                 serializable_file_list = parsed_xml_dict[comp_type].get_serializable_type_files()
                 for serializable_file in serializable_file_list:
-                    serializable_file = self.search_for_file("Serializable", serializable_file)
+                    serializable_file = search_for_file("Serializable", serializable_file)
                     serializable_model = XmlSerializeParser.XmlSerializeParser(serializable_file)
                     if (len(serializable_model.get_includes()) != 0):
                         raise Exception("%s: Can only include one level of serializable for dictionaries"%serializable_file)
                     serializable_type = serializable_model.get_namespace() + "::" + serializable_model.get_name()
                     serializable_size = 0
-                    for (member_name, member_type, member_size, member_format_specifier, member_comment) in serializable_model.get_members():
+                    for (member_name, member_type, member_size, member_format_specifier, member_comment, _) in serializable_model.get_members():
                         # if enumeration
                         if type(member_type) == type(tuple()):
                             type_size = 4
@@ -316,7 +317,7 @@ class TlmPacketParser(object):
             for entry in element_tree.getroot():
                 # read in topology file 
                 if entry.tag == "import_topology":
-                    top_file = self.search_for_file("Packet",entry.text)
+                    top_file = search_for_file("Packet",entry.text)
                     if top_file == None:
                         raise TlmPacketParseIOError("import file %s not found"%entry.text)
                     the_parsed_topology_xml = XmlTopologyParser.XmlTopologyParser(top_file)
@@ -475,24 +476,8 @@ def main():
         return
     
     print("Processing packet file %s" % xml_filename)
+    set_build_roots(os.environ.get("BUILD_ROOT"))
     
-    #
-    # Check for BUILD_ROOT variable for XML port searches
-    #
-    if not opt.build_root_overwrite == None:
-        BUILD_ROOT = os.path.abspath(opt.build_root_overwrite)
-        ModelParser.BUILD_ROOT = BUILD_ROOT
-        if opt.verbose_flag:
-            print("BUILD_ROOT set to %s" % BUILD_ROOT)
-    else:
-        if ('BUILD_ROOT' in os.environ.keys()) == False:
-            print("ERROR: Build root not set to root build path...")
-            sys.exit(-1)
-        BUILD_ROOT = os.path.abspath(os.environ['BUILD_ROOT'])
-        ModelParser.BUILD_ROOT = BUILD_ROOT
-        if opt.verbose_flag:
-            print("BUILD_ROOT set to %s in environment" % BUILD_ROOT)
-
     packet_parser = TlmPacketParser(opt.verbose_flag,opt.dependency_file)
     try:
         packet_parser.gen_packet_file(xml_filename)

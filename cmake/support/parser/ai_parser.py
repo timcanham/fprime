@@ -158,7 +158,8 @@ def read_fprime_import(import_type, root):
     deps = set()
     for imp in root.findall(import_type):
         imp_lib = os.path.dirname(imp.text).replace("/", "_")
-        deps.add(imp_lib)
+        if not imp_lib.endswith("_Top") or import_type != "import_topology":
+            deps.add(imp_lib)
     return deps
 
 
