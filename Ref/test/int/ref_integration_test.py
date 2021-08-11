@@ -1,11 +1,11 @@
-import os
-import sys
-import time
-import platform
-import subprocess
-from enum import Enum
+ os
+ sys
+ time
+ platform
+ subprocess
+      Enum
 
-filename = os.path.dirname(__file__)
+filename  os.path.dirname(__file__)
 gdsName = os.path.join(filename, "../../../Gds/src")
 fprimeName = os.path.join(filename, "../../../Fw/Python/src")
 sys.path.insert(0, gdsName)
