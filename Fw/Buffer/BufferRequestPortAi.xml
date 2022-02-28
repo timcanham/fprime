@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<interface name="BufferRequest" namespace="Fw">
+    <include_header>Fw/Buffer/Buffer.hpp</include_header>
+    <args>
+        <arg name="size" type="U32" pass_by="value">
+        </arg>
+    </args>
+</interface>

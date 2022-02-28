@@ -69,6 +69,7 @@ class XmlComponentParser:
         self.__channels = []
         self.__parameters = []
         self.__events = []
+        self.__dataProducts = []
         self.__instances = (
             None  # Stores number of detected instances based on id base values
         )
@@ -124,6 +125,7 @@ class XmlComponentParser:
         has_parameters = False
         has_events = False
         has_telemetry = False
+        has_dataproducts = False
 
         component = element_tree.getroot()
         component_name = component.attrib["name"]
@@ -858,6 +860,80 @@ class XmlComponentParser:
                     has_parameters = True
                 else:
                     PRINT.info("Warning: No parameters defined within parameters tag")
+            elif comp_tag.tag == "data_products":  # parse data products
+
+                for dp in comp_tag:
+                    if dp.tag != "data_product":
+                        PRINT.info(
+                            "%s: Invalid tag %s in data product definition"
+                            % (xml_file, channel.tag)
+                        )
+                        sys.exit(-1)
+                    i = dp.attrib["id"]
+
+                    n = dp.attrib["name"]
+
+                    # type
+                    if "data_type" in list(dp.attrib.keys()) and "type" in list(
+                        dp.attrib.keys()
+                    ):
+                        PRINT.info(
+                            "%s: Data product %s attributes 'data_type' and 'type' are  both specified. Only specify one."
+                            % (xml_file, n)
+                        )
+                        sys.exit(-1)
+
+                    if "data_type" in list(dp.attrib.keys()):
+                        d = dp.attrib["data_type"]
+                    else:
+                        d = dp.attrib["type"]
+
+                    s = None
+                    if d == "string":
+                        if not "size" in list(dp.attrib.keys()):
+                            PRINT.info(
+                                "%s: Data product %s string value must specify a size"
+                                % (xml_file, n)
+                            )
+                            sys.exit(-1)
+                        s = dp.attrib["size"]
+                    dp_obj = DataProduct(
+                        id=i,
+                        name=n,
+                        type=d,
+                        size=s,
+                    )
+                    for dp_tag in dp:
+                        # check for comments or enums
+                        if dp_tag.tag == "comment":
+                            dp_obj.set_comment(channel_tag.text.strip())
+                        elif dp_tag.tag == "enum" and d == "ENUM":
+                            en = dp_tag.attrib["name"]
+                            enum_members = []
+                            for mem in dp_tag:
+                                mn = mem.attrib["name"]
+                                if "value" in list(mem.attrib.keys()):
+                                    v = mem.attrib["value"]
+                                else:
+                                    v = None
+                                if "comment" in list(mem.attrib.keys()):
+                                    mc = mem.attrib["comment"].strip()
+                                else:
+                                    mc = None
+                                enum_members.append((mn, v, mc))
+                            dp_obj.set_type(((d, en), enum_members))
+                        else:
+                            PRINT.info(
+                                "%s: Invalid tag %s in data product %s"
+                                % (xml_file, channel_tag.tag, n)
+                            )
+                            sys.exit(-1)
+                    self.__dataProducts.append(dp_obj)
+                if len(self.__dataProducts) > 0:
+                    has_dataproducts = True
+                else:
+                    PRINT.info("Warning: No data products defined within data_product tag")
+
             elif (
                 comp_tag.tag == "internal_interfaces"
             ):  # parse interfaces, which are internal messages
@@ -988,6 +1064,9 @@ class XmlComponentParser:
         ## Required if Events are defined
         events = {"LogEvent": False, "LogTextEvent": False}
 
+        ## Required if Data Products are defined
+        data_products = {"DpBufferRequest":False, "DpBufferReceive":False, "DpSend":False}
+
         ## Check ports
         for port in self.__ports:
             ## Check for Cmd, CmdResponse, and CmdRegistration ports
@@ -1012,7 +1091,7 @@ class XmlComponentParser:
                     Telemetry = True
 
             ## Check for Time
-            if has_telemetry or has_events:
+            if has_telemetry or has_events or has_dataproducts:
                 if port.get_role() == "TimeGet":
                     Time = True
 
@@ -1022,6 +1101,14 @@ class XmlComponentParser:
                     events["LogEvent"] = True
                 if port.get_role() == "LogTextEvent":
                     events["LogTextEvent"] = True
+
+            if has_dataproducts:
+                if port.get_role() == "DpBufferRequest":
+                    data_products["DpBufferRequest"] = True
+                if port.get_role() == "DpBufferSend":
+                    data_products["DpBufferSend"] = True
+                if port.get_role() == "DpSend":
+                    data_products["DpSend"] = True
 
         ## Add implicit ports to port list and port type list
 
@@ -1100,7 +1187,7 @@ class XmlComponentParser:
         ## Required telemetry and event ports
         #
         ## Port exists
-        if has_telemetry or has_events:
+        if has_telemetry or has_events or has_dataproducts:
             if Time:
                 pass
             ## Port does not exist: Add to portlist
@@ -1124,6 +1211,23 @@ class XmlComponentParser:
             if len(implicitPorts) > 0:
                 self.__ports.extend(implicitPorts)
                 self.__add_to_import_port_list(implicitPorts)
+
+        ## Required data product ports
+        if has_dataproducts:
+            implicitPorts = []
+            if not data_products["DpBufferRequest"]:
+                DpBufferRequest = self.__generate_port_from_role("DpBufferRequest")
+                implicitPorts += [DpBufferRequest]
+            if not data_products["DpBufferSend"]:
+                DpBufferSend = self.__generate_port_from_role("DpBufferSend")
+                implicitPorts += [DpBufferSend]
+            if not data_products["DpSend"]:
+                DpSend = self.__generate_port_from_role("DpSend")
+                implicitPorts += [DpSend]
+            if len(implicitPorts) > 0:
+                self.__ports.extend(implicitPorts)
+                self.__add_to_import_port_list(implicitPorts)
+
 
         for p in self.__ports:
             t = p.get_type()
@@ -1686,6 +1790,54 @@ class Channel:
     def set_units(self, name, gain, offset):
         self.__units.append((name, gain, offset))
 
+class DataProduct:
+    """
+    Data container for a data product definition.
+    """
+
+    def __init__(
+        self,
+        id,
+        name,
+        type,
+        size=None,
+        comment=None,
+    ):
+        """
+        Constructor
+        @param id:  numeric data product id
+        @param name: name of data product
+        @param type:  Type of data product (must have supporting include xml)
+        @param size: size, if type is string
+        @param comment:  A single or multiline comment
+        """
+
+        self.__id = id
+        self.__name = name
+        self.__type = type
+        self.__size = size
+        self.__comment = comment
+
+    def get_id(self):
+        return self.__id
+
+    def get_name(self):
+        return self.__name
+
+    def get_type(self):
+        return self.__type
+
+    def set_type(self, type):
+        self.__type = type
+
+    def get_size(self):
+        return self.__size
+
+    def get_comment(self):
+        return self.__comment
+
+    def set_comment(self, comment):
+        self.__comment = comment
 
 class Parameter:
     """

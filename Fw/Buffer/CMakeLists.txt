@@ -8,6 +8,7 @@
 set(SOURCE_FILES
   "${CMAKE_CURRENT_LIST_DIR}/BufferGetPortAi.xml"
   "${CMAKE_CURRENT_LIST_DIR}/BufferSendPortAi.xml"
+  "${CMAKE_CURRENT_LIST_DIR}/BufferRequestPortAi.xml"
   "${CMAKE_CURRENT_LIST_DIR}/Buffer.cpp"
 )
 

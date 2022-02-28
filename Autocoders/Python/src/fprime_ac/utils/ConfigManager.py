@@ -342,6 +342,34 @@ class ConfigManager(parent):
             "port_file"
         ] = "Fw/Prm/PrmSetPortAi.xml"
 
+        self.__prop["special_ports"]["DpBufferRequest"] = dict()
+        self.__prop["special_ports"]["DpBufferRequest"]["name"] = "DpBufferRequest"
+        self.__prop["special_ports"]["DpBufferRequest"]["type"] = "Fw::BufferRequest"
+        self.__prop["special_ports"]["DpBufferRequest"]["direction"] = "Output"
+        self.__prop["special_ports"]["DpBufferRequest"]["comment"] = None
+        self.__prop["special_ports"]["DpBufferRequest"][
+            "port_file"
+        ] = "Fw/Buffer/BufferRequestPortAi.xml"
+
+        self.__prop["special_ports"]["DpBufferSend"] = dict()
+        self.__prop["special_ports"]["DpBufferSend"]["name"] = "DpBufferSend"
+        self.__prop["special_ports"]["DpBufferSend"]["type"] = "Fw::BufferSend"
+        self.__prop["special_ports"]["DpBufferSend"]["direction"] = "Input"
+        self.__prop["special_ports"]["DpBufferSend"]["comment"] = None
+        self.__prop["special_ports"]["DpBufferSend"][
+            "port_file"
+        ] = "Fw/Buffer/BufferSendPortAi.xml"
+
+        self.__prop["special_ports"]["DpSend"] = dict()
+        self.__prop["special_ports"]["DpSend"]["name"] = "DpSend"
+        self.__prop["special_ports"]["DpSend"]["type"] = "Fw::BufferSend"
+        self.__prop["special_ports"]["DpSend"]["direction"] = "Output"
+        self.__prop["special_ports"]["DpSend"]["comment"] = None
+        self.__prop["special_ports"]["DpSend"][
+            "port_file"
+        ] = "Fw/Buffer/BufferSendPortAi.xml"
+
+
         self._setSectionDefaults("special_ports")
 
         # Add constants processing
