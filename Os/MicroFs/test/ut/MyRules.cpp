@@ -428,3 +428,75 @@
     ASSERT_EQ(Os::File::NO_PERMISSION, stat);
   }
 
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  CheckFileSize
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::CheckFileSize::CheckFileSize(const char *filename, FwSizeType size) :
+        STest::Rule<Os::Tester>("CheckFileSize")
+  {
+    this->filename = filename;
+    this->size = size;
+  }
+
+
+  bool Os::Tester::CheckFileSize::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return true;
+  }
+
+  
+  void Os::Tester::CheckFileSize::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      printf("--> Rule: %s %s, size = %d\n", this->name, this->filename, this->size);
+      
+      FileSystem::Status stat = FileSystem::getFileSize(this->filename, this->size);
+      ASSERT_EQ(FileSystem::OP_OK, stat);
+      ASSERT_EQ(size, FILE_SIZE);
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  OpenRead
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::OpenRead::OpenRead(const char* filename) :
+        STest::Rule<Os::Tester>("OpenRead")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::OpenRead::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return true;
+  }
+
+  
+  void Os::Tester::OpenRead::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+    printf("--> Rule: %s %s\n", this->name, this->filename);
+
+    I16 descIndex = state.getIndex(this->filename);
+    ASSERT_NE(descIndex, -1);
+    Os::File::Status stat = state.fileDesc[descIndex].open(this->filename, Os::File::OPEN_READ);
+    ASSERT_EQ(Os::File::OP_OK, stat);
+  }
+

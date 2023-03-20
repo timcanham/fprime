@@ -7,11 +7,11 @@
 #include <Fw/Types/String.hpp>
 #include "Tester.hpp"
 
-
 TEST(Initialization, InitTest) {
     Os::Tester tester;
     tester.InitTest();
 }
+
 
 TEST(FileOps, OpenWriteReadTest) {
     Os::Tester tester;
@@ -41,6 +41,11 @@ TEST(FileSystemOps, OpenFreeSpaceTest) {
 TEST(FileOps, OpenStressTest) {
     Os::Tester tester;
     tester.OpenStressTest();
+}
+
+TEST(FileOps, FileSizeTest) {
+    Os::Tester tester;
+    tester.FileSizeTest();
 }
 
 #if 0

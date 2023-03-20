@@ -64,6 +64,7 @@ namespace Os {
       void OpenFreeSpaceTest();
       void OddTest();
       void BadOpenTest();
+      void FileSizeTest();
 
       // Helper functions
       void clearFileBuffer();
