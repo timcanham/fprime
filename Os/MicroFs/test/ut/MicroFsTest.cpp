@@ -7,11 +7,11 @@
 #include <Fw/Types/String.hpp>
 #include "Tester.hpp"
 
-
 TEST(Initialization, InitTest) {
     Os::Tester tester;
     tester.InitTest();
 }
+
 
 TEST(FileOps, OpenWriteReadTest) {
     Os::Tester tester;
@@ -43,13 +43,23 @@ TEST(FileOps, OpenStressTest) {
     tester.OpenStressTest();
 }
 
-#if 0
+TEST(FileOps, FileSizeTest) {
+    Os::Tester tester;
+    tester.FileSizeTest();
+}
 
+#if 0
 TEST(FileOps, OddTest) {
     Os::Tester tester;
     tester.OddTest();
 }
+
+TEST(OffNominal, BadOpenTest) {
+    Os::Tester tester;
+    tester.BadOpenTest();
+}
 #endif
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

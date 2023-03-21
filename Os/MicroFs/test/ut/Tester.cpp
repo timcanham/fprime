@@ -26,7 +26,87 @@ namespace Os {
   // ----------------------------------------------------------------------
   // Tests
   // ----------------------------------------------------------------------
-// ----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
+  // FileSizeTest
+  // ----------------------------------------------------------------------
+  void Tester ::
+    FileSizeTest()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file0";
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenFile openFile1(File1);
+    CloseFile closeFile(File1);
+    WriteData writeData(File1, FILE_SIZE, 0xFF);
+    CheckFileSize checkFileSize(File1, FILE_SIZE);
+    OpenRead openRead(File1);
+    ReadData readData(File1, FILE_SIZE/2);
+    Cleanup cleanup;
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openFile1.apply(*this);
+    writeData.apply(*this);
+    checkFileSize.apply(*this);
+    closeFile.apply(*this);
+    checkFileSize.apply(*this);
+    openRead.apply(*this);
+    checkFileSize.apply(*this);
+    closeFile.apply(*this);
+    checkFileSize.apply(*this);
+    openRead.apply(*this);
+    checkFileSize.apply(*this);
+    closeFile.apply(*this);
+    checkFileSize.apply(*this);
+    cleanup.apply(*this);
+  }
+
+  // ----------------------------------------------------------------------
+  // BadOpenTest
+  // ----------------------------------------------------------------------
+  void Tester ::
+    BadOpenTest()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file0";
+    const char* File2 = "/bin0/file2";
+
+    const U16 TotalFiles = NumberBins * NumberFiles;
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenFile openFile1(File1);
+    OpenFile openFile2(File2);
+    CloseFile closeFile1(File1);
+    CloseFile closeFile2(File2);
+    OpenNoPerm openNoPerm1(File1);
+    OpenNoPerm openNoPerm2(File2);
+
+    Cleanup cleanup;
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openFile1.apply(*this);
+    openFile2.apply(*this);
+    //openFile2.apply(*this);
+    // openNoPerm1.apply(*this);
+    // openNoPerm2.apply(*this);
+    //closeFile1.apply(*this);
+    //closeFile2.apply(*this);
+
+    cleanup.apply(*this);
+  }
+
+  // ----------------------------------------------------------------------
   // OddTest
   // ----------------------------------------------------------------------
   void Tester ::
@@ -37,8 +117,6 @@ namespace Os {
 
     const char* File1 = "/bin0/file0";
     const char* File2 = "/bin0/file2";
-    // const char* File3 = "/bin1/file0";
-    // const char* File4 = "/bin1/file2";
 
     const U16 TotalFiles = NumberBins * NumberFiles;
     clearFileBuffer();
@@ -47,8 +125,6 @@ namespace Os {
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
     OpenFile openFile1(File1);
     OpenFile openFile2(File2);
-    // OpenFile openFile3(File3);
-    // OpenFile openFile4(File4);
     Listings listings(NumberBins, NumberFiles);
 
     Cleanup cleanup;
@@ -57,9 +133,6 @@ namespace Os {
     initFileSystem.apply(*this);
     openFile1.apply(*this);
     openFile2.apply(*this);
-    // openFile3.apply(*this);
-    // openFile4.apply(*this);
-    listings.apply(*this);
 
     cleanup.apply(*this);
   }

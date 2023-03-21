@@ -113,22 +113,25 @@ void MicroFsCleanup(const FwNativeUIntType id,
 }
 
 // helper to find file state entry from file name. Will return index if found, -1 if not
-STATIC FwNativeIntType getFileStateIndex(const char* fileName) {
+STATIC FwNativeIntType 
+getFileStateIndex(const char* fileName) {
     // the directory/filename rule is very strict - it has to be /MICROFS_BIN_STRING<n>/MICROFS_FILE_STRING<m>,
     // where n = number of file bins, and m = number of files in a particular bin
     // any other name will return an error
 
+    // Scan the string for the bin and file numbers.  
+    // We want a failure to find the file if there is any extension
+    // after the file number. 
     const char* filePathSpec = "/" 
         MICROFS_BIN_STRING 
         "%d/" 
         MICROFS_FILE_STRING 
-        "%d";
+        "%d.%1s";
 
     FwNativeUIntType binIndex;
     FwNativeUIntType fileIndex;
-
-    FwNativeIntType stat = sscanf(fileName,filePathSpec,&binIndex,&fileIndex);
-    // must match two entries, i.e. the bin and file numbers
+    char crcExtension;
+    FwNativeIntType stat = sscanf(fileName,filePathSpec,&binIndex,&fileIndex,&crcExtension);
     if (stat != 2) {
         return -1;
     }
@@ -224,6 +227,11 @@ File::Status File::open(const char* fileName, File::Mode mode, bool include_excl
         case OPEN_WRITE:
         case OPEN_SYNC_WRITE:         // fall through; same for microfs
         case OPEN_SYNC_DIRECT_WRITE:  // fall through; same for microfs
+            // If the file has never previously been opened, then initialize the
+            // size to 0.
+            if (-1 == state->currSize) {
+                state->currSize = 0;
+            }
             break;
         case OPEN_CREATE:
             // truncate file length to zero
@@ -252,6 +260,7 @@ File::Status File::prealloc(NATIVE_INT_TYPE offset, NATIVE_INT_TYPE len) {
 
 File::Status File::seek(NATIVE_INT_TYPE offset, bool absolute) {
     // make sure it has been opened
+
     if (OPEN_NO_MODE == this->m_mode) {
         return NOT_OPENED;
     }
@@ -280,6 +289,7 @@ File::Status File::seek(NATIVE_INT_TYPE offset, bool absolute) {
     if (state->loc > state->currSize) {
         state->currSize = state->loc;
     }
+    
     return OP_OK;
 }
 
