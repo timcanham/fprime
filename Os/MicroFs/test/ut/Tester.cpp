@@ -107,16 +107,15 @@ namespace Os {
   }
 
   // ----------------------------------------------------------------------
-  // OddTest
+  // ReWriteTest
   // ----------------------------------------------------------------------
   void Tester ::
-    OddTest()
+    ReWriteTest()
   {
     const U16 NumberBins = 1;
     const U16 NumberFiles = 2;
 
     const char* File1 = "/bin0/file0";
-    const char* File2 = "/bin0/file2";
 
     const U16 TotalFiles = NumberBins * NumberFiles;
     clearFileBuffer();
@@ -124,15 +123,85 @@ namespace Os {
     // Instantiate the Rules
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
     OpenFile openFile1(File1);
-    OpenFile openFile2(File2);
+    CloseFile closeFile1(File1);
     Listings listings(NumberBins, NumberFiles);
+    WriteData writeData1(File1, FILE_SIZE, 0xFF);
+    WriteData writeDataHalf(File1, FILE_SIZE/2, 0xFF);
+    WriteData writeDataQuater(File1, FILE_SIZE/4, 0xFF);
+    ReadData readData(File1, FILE_SIZE);
+    OpenRead openRead1(File1);
+    ReadData readData1(File1, FILE_SIZE/2);
+    ResetFile resetFile1(File1);
+    CheckFileSize checkFileSize(File1, FILE_SIZE);
+    CheckFileSize checkFileSizeZero(File1, 0);
+    CheckFileSize checkFileSizeHalf(File1, FILE_SIZE/2);
+    CheckFileSize checkFileSizeQuater(File1, FILE_SIZE/4);
+    CheckFileSize checkFileSizeThreeQuaters(File1, 3*FILE_SIZE/4);
 
     Cleanup cleanup;
 
     // Run the Rules
+    
+    // Initialize
+    initFileSystem.apply(*this);
+
+    // Part 1:  Open a new file and write max bytes
+    printf("Part 1");
+    openFile1.apply(*this);
+    writeData1.apply(*this);
+    checkFileSize.apply(*this);
+    closeFile1.apply(*this);
+
+    // Part 2: Open the file again and write max bytes,
+    // check that the size does not exceed tha max
+    printf("Part 2");
+    openFile1.apply(*this);
+    writeData1.apply(*this);
+    checkFileSize.apply(*this);
+    closeFile1.apply(*this);
+
+    // Part 3: Open the file again, write half the bytes,
+    // check that the size still equals the max, write the 
+    // other half, check that the size still equals the max.
+    printf("Part 3");
+    openFile1.apply(*this);
+    writeDataHalf.apply(*this);
+    checkFileSize.apply(*this);
+    writeDataHalf.apply(*this);
+    checkFileSize.apply(*this);
+    closeFile1.apply(*this);
+
+    // Part 4: Cleanup and reinitialize
+    // Open a new file, check the size is 0, write half and check half
+    printf("Part 4");
+    cleanup.apply(*this);
     initFileSystem.apply(*this);
     openFile1.apply(*this);
-    openFile2.apply(*this);
+    checkFileSizeZero.apply(*this);
+    writeDataHalf.apply(*this);
+    checkFileSizeHalf.apply(*this);
+    closeFile1.apply(*this);
+
+    // Part 5:  Open the file again.  Check size is 1/2
+    // Write a 1/4 and check file is still 1/2
+    // Write a 1/4 and check file is still 1/2
+    // Write a 1/4 and check file is 3/4
+    // Write a 1/4 again and check file is full
+    printf("Part 5");
+    openFile1.apply(*this);
+    checkFileSizeHalf.apply(*this);
+    writeDataQuater.apply(*this);
+    checkFileSizeHalf.apply(*this);
+    writeDataQuater.apply(*this);
+    checkFileSizeHalf.apply(*this);
+    writeDataQuater.apply(*this);
+    checkFileSizeThreeQuaters.apply(*this);
+    writeDataQuater.apply(*this);
+    checkFileSize.apply(*this);
+    closeFile1.apply(*this);
+
+    // Part
+
 
     cleanup.apply(*this);
   }

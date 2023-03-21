@@ -62,7 +62,7 @@ namespace Os {
       void OneFileReadDirectory();
       void OpenStressTest();
       void OpenFreeSpaceTest();
-      void OddTest();
+      void ReWriteTest();
       void BadOpenTest();
       void FileSizeTest();
 

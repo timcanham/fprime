@@ -83,7 +83,8 @@
 
     I16 descIndex = state.getIndex(this->filename);
     ASSERT_NE(descIndex, -1);
-    Os::File::Status stat = state.fileDesc[descIndex].open(this->filename, Os::File::OPEN_CREATE);
+    state.curPtr = 0;
+    Os::File::Status stat = state.fileDesc[descIndex].open(this->filename, Os::File::OPEN_WRITE);
     ASSERT_EQ(Os::File::OP_OK, stat);
   }
 
@@ -151,7 +152,7 @@
             Os::Tester& state //!< The test state
         ) 
   {
-    printf("--> Rule: %s \n", this->name);
+    printf("--> Rule: %s %d bytes\n", this->name, this->size);
 
     I32 descIndex = state.getIndex(this->filename);
     ASSERT_NE(descIndex, -1);
@@ -424,7 +425,8 @@
 
     I16 descIndex = state.getIndex(this->filename);
     ASSERT_NE(descIndex, -1);
-    Os::File::Status stat = state.fileDesc[descIndex].open(this->filename, Os::File::OPEN_CREATE);
+    state.curPtr = 0;
+    Os::File::Status stat = state.fileDesc[descIndex].open(this->filename, Os::File::OPEN_WRITE);
     ASSERT_EQ(Os::File::NO_PERMISSION, stat);
   }
 
@@ -458,10 +460,10 @@
         ) 
   {
       printf("--> Rule: %s %s, size = %d\n", this->name, this->filename, this->size);
-      
-      FileSystem::Status stat = FileSystem::getFileSize(this->filename, this->size);
+      FwSizeType actualSize = this->size;
+      FileSystem::Status stat = FileSystem::getFileSize(this->filename, actualSize);
       ASSERT_EQ(FileSystem::OP_OK, stat);
-      ASSERT_EQ(size, FILE_SIZE);
+      ASSERT_EQ(actualSize, this->size);
   }
 
 
