@@ -53,9 +53,9 @@ TEST(FileOps, ReWriteTest) {
 }
 
 #if 0
-TEST(OffNominal, BadOpenTest) {
+TEST(FileOps, NukeTest) {
     Os::Tester tester;
-    tester.BadOpenTest();
+    tester.NukeTest();
 }
 #endif
 

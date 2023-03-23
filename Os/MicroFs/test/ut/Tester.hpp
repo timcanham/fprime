@@ -28,6 +28,12 @@ namespace Os {
         FILE_SIZE = 100
       };
 
+      typedef struct FileModel {
+        Os::File fileDesc;
+        BYTE buffOut[FILE_SIZE];
+        NATIVE_INT_TYPE curPtr;
+      } FileModel;
+
       // ----------------------------------------------------------------------
       // Construction and destruction
       // ----------------------------------------------------------------------
@@ -42,9 +48,10 @@ namespace Os {
       //!
       ~Tester();
 
+      FileModel fileModels[MAX_TOTAL_FILES];
+
       Fw::MallocAllocator alloc;
       Os::MicroFsConfig testCfg;
-      Os::File fileDesc[MAX_TOTAL_FILES];
       BYTE buffOut[FILE_SIZE];
       NATIVE_INT_TYPE curPtr;
 
@@ -65,6 +72,7 @@ namespace Os {
       void ReWriteTest();
       void BadOpenTest();
       void FileSizeTest();
+      void NukeTest();
 
       // Helper functions
       void clearFileBuffer();

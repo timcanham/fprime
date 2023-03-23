@@ -26,6 +26,35 @@ namespace Os {
   // ----------------------------------------------------------------------
   // Tests
   // ----------------------------------------------------------------------
+
+  // ----------------------------------------------------------------------
+  // NukeTest
+  // ----------------------------------------------------------------------
+  void Tester ::
+    NukeTest()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file0";
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenFile openFile(File1);
+    CloseFile closeFile(File1);
+    WriteData writeData(File1, FILE_SIZE, 0xFF);
+    CheckFileSize checkFileSize(File1, FILE_SIZE);
+    OpenRead openRead(File1);
+    ReadData readData(File1, FILE_SIZE/2);
+    Cleanup cleanup;
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openFile.apply(*this);
+  }
+
   // ----------------------------------------------------------------------
   // FileSizeTest
   // ----------------------------------------------------------------------
