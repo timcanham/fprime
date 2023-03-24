@@ -238,8 +238,7 @@
         ) 
   {
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-
-      return true;
+      return (fileModel->mode != Os::Tester::FileModel::CLOSED);
   }
 
   
@@ -290,9 +289,6 @@
     this->fileModel->mode = Os::Tester::FileModel::CLOSED;
 
   }
-
-
-    
 
 
   // ------------------------------------------------------------------------------------------------------
@@ -395,9 +391,6 @@
   }
 
 
-    
-
-
   // ------------------------------------------------------------------------------------------------------
   // Rule:  OpenNoPerm
   //
@@ -415,6 +408,8 @@
         ) 
   {
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      this->fileModel->mode == Os::Tester::FileModel::CLOSED;
+
       return true;
   }
 
