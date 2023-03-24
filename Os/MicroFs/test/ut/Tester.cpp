@@ -20,8 +20,20 @@ namespace Os {
   Tester ::
     ~Tester()
   {
-
   }
+
+  Tester :: FileModel ::
+      FileModel()
+  {
+  }
+
+  void Tester :: FileModel ::
+      clear()
+  {
+    this->curPtr = 0;
+    memset(this->buffOut, 0xA5, FILE_SIZE);
+  }
+
 
   // ----------------------------------------------------------------------
   // Tests
@@ -474,11 +486,13 @@ namespace Os {
   // Helper functions
   void Tester::clearFileBuffer()
   {
-        this->curPtr = 0;
-        memset(this->buffOut, 0xA5, FILE_SIZE);
+        for (U32 i=0; i < MAX_TOTAL_FILES; i++)
+        {
+          this->fileModels[i].clear();
+        }
   }
 
-  I16 Tester::getIndex(const char *fileName)
+  I16 Tester::getIndex(const char *fileName) const
   {
     const char* filePathSpec = "/bin%d/file%d";
 

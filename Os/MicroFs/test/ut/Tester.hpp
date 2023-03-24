@@ -19,7 +19,6 @@ namespace Os {
 
   class Tester
   {
-      #include "MyRules.hpp"
 
       enum {
         MAX_BINS = 10,
@@ -28,17 +27,24 @@ namespace Os {
         FILE_SIZE = 100
       };
 
-      typedef struct FileModel {
-        Os::File fileDesc;
-        BYTE buffOut[FILE_SIZE];
-        NATIVE_INT_TYPE curPtr;
-      } FileModel;
 
       // ----------------------------------------------------------------------
       // Construction and destruction
       // ----------------------------------------------------------------------
 
     public:
+
+      class FileModel {
+          public:
+            FileModel();
+            void clear();
+
+            Os::File fileDesc;
+            BYTE buffOut[FILE_SIZE];
+            NATIVE_INT_TYPE curPtr;
+      };
+
+      #include "MyRules.hpp"
 
       //! Construct object Tester
       //!
@@ -52,8 +58,6 @@ namespace Os {
 
       Fw::MallocAllocator alloc;
       Os::MicroFsConfig testCfg;
-      BYTE buffOut[FILE_SIZE];
-      NATIVE_INT_TYPE curPtr;
 
     public:
 
@@ -95,7 +99,7 @@ namespace Os {
       //!
       void initComponents();
 
-      I16 getIndex(const char *fileName);
+      I16 getIndex(const char *fileName) const;
 
     private:
 
