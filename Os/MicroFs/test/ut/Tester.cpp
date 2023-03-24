@@ -188,7 +188,7 @@ namespace Os {
     initFileSystem.apply(*this);
 
     // Part 1:  Open a new file and write max bytes
-    printf("Part 1");
+    printf("Part 1\n");
     openFile1.apply(*this);
     writeData1.apply(*this);
     checkFileSize.apply(*this);
@@ -196,7 +196,7 @@ namespace Os {
 
     // Part 2: Open the file again and write max bytes,
     // check that the size does not exceed tha max
-    printf("Part 2");
+    printf("Part 2\n");
     openFile1.apply(*this);
     writeData1.apply(*this);
     checkFileSize.apply(*this);
@@ -205,7 +205,7 @@ namespace Os {
     // Part 3: Open the file again, write half the bytes,
     // check that the size still equals the max, write the 
     // other half, check that the size still equals the max.
-    printf("Part 3");
+    printf("Part 3\n");
     openFile1.apply(*this);
     writeDataHalf.apply(*this);
     checkFileSize.apply(*this);
@@ -215,7 +215,7 @@ namespace Os {
 
     // Part 4: Cleanup and reinitialize
     // Open a new file, check the size is 0, write half and check half
-    printf("Part 4");
+    printf("Part 4\n");
     cleanup.apply(*this);
     initFileSystem.apply(*this);
     openFile1.apply(*this);
@@ -229,7 +229,7 @@ namespace Os {
     // Write a 1/4 and check file is still 1/2
     // Write a 1/4 and check file is 3/4
     // Write a 1/4 again and check file is full
-    printf("Part 5");
+    printf("Part 5\n");
     openFile1.apply(*this);
     checkFileSizeHalf.apply(*this);
     writeDataQuater.apply(*this);
@@ -328,6 +328,8 @@ namespace Os {
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
     OpenFile openFile(FileName);
     ResetFile resetFile(FileName);
+    CloseFile closeFile(FileName);
+    OpenRead openRead(FileName);
     Cleanup cleanup;
     WriteData writeData(FileName, FILE_SIZE, 0xFF);
     ReadData readData(FileName, FILE_SIZE);
@@ -336,6 +338,8 @@ namespace Os {
     initFileSystem.apply(*this);
     openFile.apply(*this);
     writeData.apply(*this);
+    closeFile.apply(*this);
+    openRead.apply(*this);
     resetFile.apply(*this);
     readData.apply(*this);
 
@@ -364,12 +368,16 @@ namespace Os {
     WriteData writeData1(FileName, FILE_SIZE/2, 0x11);
     WriteData writeData2(FileName, FILE_SIZE/2, 0x22);
     ReadData readData(FileName, FILE_SIZE);
+    CloseFile closeFile(FileName);
+    OpenRead openRead(FileName);
 
     // Run the Rules
     initFileSystem.apply(*this);
     openFile.apply(*this);
     writeData1.apply(*this);
     writeData2.apply(*this);
+    closeFile.apply(*this);
+    openRead.apply(*this);
     resetFile.apply(*this);
     readData.apply(*this);
 
@@ -392,7 +400,9 @@ namespace Os {
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
     OpenFile openFile(FileName);
     ResetFile resetFile(FileName);
+    CloseFile closeFile(FileName);
     Cleanup cleanup;
+    OpenRead openRead(FileName);
     WriteData writeData(FileName, FILE_SIZE, 0xFF);
     ReadData readData(FileName, FILE_SIZE/2);
 
@@ -400,6 +410,8 @@ namespace Os {
     initFileSystem.apply(*this);
     openFile.apply(*this);
     writeData.apply(*this);
+    closeFile.apply(*this);
+    openRead.apply(*this);
     resetFile.apply(*this);
     readData.apply(*this);
     readData.apply(*this);

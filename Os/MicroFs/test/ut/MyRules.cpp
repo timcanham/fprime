@@ -87,6 +87,8 @@
     this->fileModel->curPtr = 0;
     Os::File::Status stat = this->fileModel->fileDesc.open(this->filename, Os::File::OPEN_WRITE);
     ASSERT_EQ(Os::File::OP_OK, stat);
+
+    this->fileModel->mode = Os::Tester::FileModel::OPEN_WRITE;
   }
 
 
@@ -146,7 +148,7 @@
         ) 
   {
     this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-    return true;
+    return (fileModel->mode == Os::Tester::FileModel::OPEN_WRITE);
   }
 
   
@@ -189,8 +191,7 @@
         ) 
   {
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-
-      return true;
+      return (fileModel->mode == Os::Tester::FileModel::OPEN_READ);
   }
 
   
@@ -274,7 +275,7 @@
         ) 
   {
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-      return true;
+      return (fileModel->mode != Os::Tester::FileModel::CLOSED);
   }
 
   
@@ -286,6 +287,8 @@
 
     // close file
     this->fileModel->fileDesc.close();
+    this->fileModel->mode = Os::Tester::FileModel::CLOSED;
+
   }
 
 
@@ -425,6 +428,7 @@
     this->fileModel->curPtr = 0;
     Os::File::Status stat = this->fileModel->fileDesc.open(this->filename, Os::File::OPEN_WRITE);
     ASSERT_EQ(Os::File::NO_PERMISSION, stat);
+
   }
 
 
@@ -448,7 +452,7 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-      this->fileIndex = state.getIndex(this->filename);
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
       return true;
   }
 
@@ -484,7 +488,7 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-      this->fileIndex = state.getIndex(this->filename);
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
       return true;
   }
 
@@ -495,11 +499,10 @@
   {
     printf("--> Rule: %s %s\n", this->name, this->filename);
 
-    ASSERT_NE(fileIndex, -1);
-
-    Os::Tester::FileModel *fileModel = &(state.fileModels[this->fileIndex]);
-
-    Os::File::Status stat = fileModel->fileDesc.open(this->filename, Os::File::OPEN_READ);
+    Os::File::Status stat = this->fileModel->fileDesc.open(this->filename, Os::File::OPEN_READ);
     ASSERT_EQ(Os::File::OP_OK, stat);
+
+    this->fileModel->mode = Os::Tester::FileModel::OPEN_READ;
+
   }
 

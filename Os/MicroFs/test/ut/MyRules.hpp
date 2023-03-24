@@ -388,7 +388,7 @@
 
             const char* filename;
             FwSizeType size;
-            I32 fileIndex;
+            Os::Tester::FileModel *fileModel;
 
     };
 
@@ -424,7 +424,8 @@
             );
 
             const char* filename;
-            I32 fileIndex;
+            Os::Tester::FileModel *fileModel;
+
 
     };
 
