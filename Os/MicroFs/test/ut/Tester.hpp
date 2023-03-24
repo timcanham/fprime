@@ -28,6 +28,7 @@ namespace Os {
       };
 
 
+
       // ----------------------------------------------------------------------
       // Construction and destruction
       // ----------------------------------------------------------------------
@@ -36,9 +37,16 @@ namespace Os {
 
       class FileModel {
           public:
+            enum Mode {
+              CLOSED,
+              OPEN_READ,
+              OPEN_WRITE
+            };
+
             FileModel();
             void clear();
 
+            Mode mode;
             Os::File fileDesc;
             BYTE buffOut[FILE_SIZE];
             NATIVE_INT_TYPE curPtr;
@@ -80,6 +88,8 @@ namespace Os {
 
       // Helper functions
       void clearFileBuffer();
+      FileModel* getFileModel(const char *filename);
+
 
     private:
 
@@ -100,6 +110,7 @@ namespace Os {
       void initComponents();
 
       I16 getIndex(const char *fileName) const;
+
 
     private:
 

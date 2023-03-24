@@ -71,8 +71,10 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-      this->fileIndex = state.getIndex(this->filename);
-      return true;
+      
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+
+      return (fileModel->mode == Os::Tester::FileModel::CLOSED);
   }
 
   
@@ -81,10 +83,9 @@
         ) 
   {
     printf("--> Rule: %s %s\n", this->name, this->filename);
-    Os::Tester::FileModel *fileModel = &(state.fileModels[this->fileIndex]);
 
-    fileModel->curPtr = 0;
-    Os::File::Status stat = fileModel->fileDesc.open(this->filename, Os::File::OPEN_WRITE);
+    this->fileModel->curPtr = 0;
+    Os::File::Status stat = this->fileModel->fileDesc.open(this->filename, Os::File::OPEN_WRITE);
     ASSERT_EQ(Os::File::OP_OK, stat);
   }
 
@@ -144,7 +145,7 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-    this->fileIndex = state.getIndex(this->filename);
+    this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
     return true;
   }
 
@@ -155,16 +156,12 @@
   {
     printf("--> Rule: %s %d bytes\n", this->name, this->size);
 
-    ASSERT_NE(this->fileIndex, -1);
-
-    Os::Tester::FileModel *fileModel = &(state.fileModels[this->fileIndex]);
-
-    ASSERT_LE(fileModel->curPtr + this->size, Tester::FILE_SIZE);
-    memset(fileModel->buffOut + fileModel->curPtr, this->value, this->size);
+    ASSERT_LE(this->fileModel->curPtr + this->size, Tester::FILE_SIZE);
+    memset(this->fileModel->buffOut + fileModel->curPtr, this->value, this->size);
     NATIVE_INT_TYPE retSize = this->size;
-    Os::File::Status stat = fileModel->fileDesc.write(fileModel->buffOut + fileModel->curPtr, retSize);
+    Os::File::Status stat = fileModel->fileDesc.write(this->fileModel->buffOut + this->fileModel->curPtr, retSize);
 
-    fileModel->curPtr += this->size;
+    this->fileModel->curPtr += this->size;
     ASSERT_EQ(stat, Os::File::OP_OK);
     ASSERT_EQ(retSize, this->size);
 
@@ -191,7 +188,8 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-      this->fileIndex = state.getIndex(this->filename);
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+
       return true;
   }
 
@@ -202,23 +200,19 @@
   {
       printf("--> Rule: %s \n", this->name);
 
-      ASSERT_NE(this->fileIndex, -1);
-
-      Os::Tester::FileModel *fileModel = &(state.fileModels[this->fileIndex]);
-
       BYTE buffIn[state.testCfg.bins[0].fileSize];
       NATIVE_INT_TYPE bufferSize = sizeof(buffIn);
       memset(buffIn,0xA5,sizeof(buffIn));
       ASSERT_LE(this->size, sizeof(buffIn));
       NATIVE_INT_TYPE retSize = this->size;
-      Os::File::Status stat = fileModel->fileDesc.read(buffIn, retSize);
+      Os::File::Status stat = this->fileModel->fileDesc.read(buffIn, retSize);
 
       ASSERT_EQ(stat, Os::File::OP_OK);
       ASSERT_EQ(retSize, this->size);
 
       // Check the returned data
       ASSERT_LE(fileModel->curPtr + this->size, Tester::FILE_SIZE);
-      ASSERT_EQ(0,memcmp(buffIn, fileModel->buffOut + fileModel->curPtr, this->size));
+      ASSERT_EQ(0,memcmp(buffIn, this->fileModel->buffOut + this->fileModel->curPtr, this->size));
 
   }
 
@@ -242,7 +236,8 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-      this->fileIndex = state.getIndex(this->filename);
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+
       return true;
   }
 
@@ -253,12 +248,8 @@
   {
       printf("--> Rule: %s \n", this->name);
 
-      ASSERT_NE(fileIndex, -1);
-      Os::Tester::FileModel *fileModel = &(state.fileModels[this->fileIndex]);
-
-
       // seek back to beginning
-      ASSERT_EQ(Os::File::OP_OK, fileModel->fileDesc.seek(0));
+      ASSERT_EQ(Os::File::OP_OK, this->fileModel->fileDesc.seek(0));
       fileModel->curPtr = 0;
   }
 
@@ -282,7 +273,7 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-      this->fileIndex = state.getIndex(this->filename);
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
       return true;
   }
 
@@ -293,12 +284,8 @@
   {
     printf("--> Rule: %s %s\n", this->name, this->filename);
 
-    Os::Tester::FileModel *fileModel = &(state.fileModels[this->fileIndex]);
-
-
     // close file
-    ASSERT_NE(fileIndex, -1);
-    fileModel->fileDesc.close();
+    this->fileModel->fileDesc.close();
   }
 
 
@@ -424,7 +411,7 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-      this->fileIndex = state.getIndex(this->filename);
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
       return true;
   }
 
@@ -434,12 +421,9 @@
         ) 
   {
     printf("--> Rule: %s %s\n", this->name, this->filename);
-    Os::Tester::FileModel *fileModel = &(state.fileModels[this->fileIndex]);
 
-
-    ASSERT_NE(fileIndex, -1);
-    fileModel->curPtr = 0;
-    Os::File::Status stat = fileModel->fileDesc.open(this->filename, Os::File::OPEN_WRITE);
+    this->fileModel->curPtr = 0;
+    Os::File::Status stat = this->fileModel->fileDesc.open(this->filename, Os::File::OPEN_WRITE);
     ASSERT_EQ(Os::File::NO_PERMISSION, stat);
   }
 

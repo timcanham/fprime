@@ -66,7 +66,7 @@
             );
 
             const char *filename; 
-            I32 fileIndex;
+            Os::Tester::FileModel *fileModel;
 
 
     };
@@ -138,7 +138,8 @@
             NATIVE_INT_TYPE size;
             U8 value;
             const char* filename;
-            I32 fileIndex;
+            Os::Tester::FileModel *fileModel;
+
 
     };
 
@@ -175,7 +176,8 @@
 
             NATIVE_INT_TYPE size;
             const char *filename;
-            I32 fileIndex;
+            Os::Tester::FileModel *fileModel;
+
 
     };
 
@@ -211,7 +213,7 @@
             );
 
             const char *filename;
-            I32 fileIndex;
+            Os::Tester::FileModel *fileModel;
 
 
     };
@@ -248,7 +250,7 @@
             );
 
             const char *filename;
-            I32 fileIndex;
+            Os::Tester::FileModel *fileModel;
 
     };
 
@@ -348,7 +350,8 @@
             );
 
             const char *filename;
-            I32 fileIndex;
+            Os::Tester::FileModel *fileModel;
+
 
     };
 

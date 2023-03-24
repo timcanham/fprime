@@ -23,7 +23,8 @@ namespace Os {
   }
 
   Tester :: FileModel ::
-      FileModel()
+      FileModel() : 
+        mode(CLOSED)
   {
   }
 
@@ -507,6 +508,12 @@ namespace Os {
       return binIndex * MAX_BINS + fileIndex;
     }
 
+  }
+
+  Tester::FileModel* Tester::getFileModel(const char *filename)
+  {
+      I32 fileIndex = this->getIndex(filename);
+      return &(this->fileModels[fileIndex]);
   }
 
 
