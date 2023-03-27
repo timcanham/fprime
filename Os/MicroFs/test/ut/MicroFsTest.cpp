@@ -12,7 +12,6 @@ TEST(Initialization, InitTest) {
     tester.InitTest();
 }
 
-
 TEST(FileOps, OpenWriteReadTest) {
     Os::Tester tester;
     tester.OpenWriteReadTest();
@@ -48,15 +47,15 @@ TEST(FileOps, FileSizeTest) {
     tester.FileSizeTest();
 }
 
-#if 0
-TEST(FileOps, OddTest) {
+TEST(FileOps, ReWriteTest) {
     Os::Tester tester;
-    tester.OddTest();
+    tester.ReWriteTest();
 }
 
-TEST(OffNominal, BadOpenTest) {
+#if 0
+TEST(FileOps, NukeTest) {
     Os::Tester tester;
-    tester.BadOpenTest();
+    tester.NukeTest();
 }
 #endif
 

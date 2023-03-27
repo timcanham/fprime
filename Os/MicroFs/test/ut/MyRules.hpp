@@ -65,7 +65,8 @@
                 Os::Tester& state //!< The test state
             );
 
-            const char *filename;
+            const char *filename; 
+            Os::Tester::FileModel *fileModel;
 
 
     };
@@ -137,6 +138,8 @@
             NATIVE_INT_TYPE size;
             U8 value;
             const char* filename;
+            Os::Tester::FileModel *fileModel;
+
 
     };
 
@@ -173,6 +176,8 @@
 
             NATIVE_INT_TYPE size;
             const char *filename;
+            Os::Tester::FileModel *fileModel;
+
 
     };
 
@@ -208,6 +213,8 @@
             );
 
             const char *filename;
+            Os::Tester::FileModel *fileModel;
+
 
     };
 
@@ -243,6 +250,7 @@
             );
 
             const char *filename;
+            Os::Tester::FileModel *fileModel;
 
     };
 
@@ -342,6 +350,8 @@
             );
 
             const char *filename;
+            Os::Tester::FileModel *fileModel;
+
 
     };
 
@@ -378,6 +388,7 @@
 
             const char* filename;
             FwSizeType size;
+            Os::Tester::FileModel *fileModel;
 
     };
 
@@ -413,6 +424,8 @@
             );
 
             const char* filename;
+            Os::Tester::FileModel *fileModel;
+
 
     };
 

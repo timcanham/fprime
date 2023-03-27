@@ -363,10 +363,15 @@ File::Status File::write(const void* buffer, NATIVE_INT_TYPE& size, bool waitFor
 
     // copy data to file buffer
     memcpy(&state->data[state->loc], buffer, size);
-    // increment file size
-    state->currSize += size;
+
     // increment location
     state->loc += size;
+
+    // Check if the currSize is to be increased.
+    if (state->loc > state->currSize)
+    {
+        state->currSize = state->loc;
+    }
 
     return OP_OK;
 }

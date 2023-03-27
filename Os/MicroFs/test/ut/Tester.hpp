@@ -19,7 +19,6 @@ namespace Os {
 
   class Tester
   {
-      #include "MyRules.hpp"
 
       enum {
         MAX_BINS = 10,
@@ -28,11 +27,32 @@ namespace Os {
         FILE_SIZE = 100
       };
 
+
+
       // ----------------------------------------------------------------------
       // Construction and destruction
       // ----------------------------------------------------------------------
 
     public:
+
+      class FileModel {
+          public:
+            enum Mode {
+              CLOSED,
+              OPEN_READ,
+              OPEN_WRITE
+            };
+
+            FileModel();
+            void clear();
+
+            Mode mode;
+            Os::File fileDesc;
+            BYTE buffOut[FILE_SIZE];
+            NATIVE_INT_TYPE curPtr;
+      };
+
+      #include "MyRules.hpp"
 
       //! Construct object Tester
       //!
@@ -42,11 +62,10 @@ namespace Os {
       //!
       ~Tester();
 
+      FileModel fileModels[MAX_TOTAL_FILES];
+
       Fw::MallocAllocator alloc;
       Os::MicroFsConfig testCfg;
-      Os::File fileDesc[MAX_TOTAL_FILES];
-      BYTE buffOut[FILE_SIZE];
-      NATIVE_INT_TYPE curPtr;
 
     public:
 
@@ -62,12 +81,15 @@ namespace Os {
       void OneFileReadDirectory();
       void OpenStressTest();
       void OpenFreeSpaceTest();
-      void OddTest();
+      void ReWriteTest();
       void BadOpenTest();
       void FileSizeTest();
+      void NukeTest();
 
       // Helper functions
       void clearFileBuffer();
+      FileModel* getFileModel(const char *filename);
+
 
     private:
 
@@ -87,7 +109,8 @@ namespace Os {
       //!
       void initComponents();
 
-      I16 getIndex(const char *fileName);
+      I16 getIndex(const char *fileName) const;
+
 
     private:
 
