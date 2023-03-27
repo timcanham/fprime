@@ -24,7 +24,8 @@ namespace Os {
 
   Tester :: FileModel ::
       FileModel() : 
-        mode(CLOSED)
+        mode(CLOSED),
+        size(0)
   {
   }
 
@@ -32,6 +33,7 @@ namespace Os {
       clear()
   {
     this->curPtr = 0;
+    this->size = 0;
     memset(this->buffOut, 0xA5, FILE_SIZE);
   }
 

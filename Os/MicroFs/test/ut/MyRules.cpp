@@ -49,6 +49,11 @@
     
     Os::MicroFsInit(state.testCfg, 0, state.alloc);
 
+    for (I32 i=0; i < MAX_TOTAL_FILES; i++) 
+    {
+      state.fileModels[i].clear();
+    }
+
   }
 
 
@@ -166,6 +171,14 @@
     this->fileModel->curPtr += this->size;
     ASSERT_EQ(stat, Os::File::OP_OK);
     ASSERT_EQ(retSize, this->size);
+
+    //Update FileModel size
+
+    // Check if the currSize is to be increased.
+    if (fileModel->curPtr > fileModel->size)
+    {
+        fileModel->size = fileModel->curPtr;
+    }
 
   }
 
@@ -461,6 +474,8 @@
       FileSystem::Status stat = FileSystem::getFileSize(this->filename, actualSize);
       ASSERT_EQ(FileSystem::OP_OK, stat);
       ASSERT_EQ(actualSize, this->size);
+
+      ASSERT_EQ(actualSize, this->fileModel->size);
   }
 
 

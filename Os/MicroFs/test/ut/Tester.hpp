@@ -50,6 +50,7 @@ namespace Os {
             Os::File fileDesc;
             BYTE buffOut[FILE_SIZE];
             NATIVE_INT_TYPE curPtr;
+            I32 size;
       };
 
       #include "MyRules.hpp"
