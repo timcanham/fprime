@@ -1,9 +1,10 @@
 
 #include "Tester.hpp"
 #include <stdio.h>
-#include <gtest/gtest.h>
 #include <Fw/Test/UnitTest.hpp>
 #include <Fw/Types/MallocAllocator.hpp>
+#include <Fw/Types/Assert.hpp>
+
 
 
 namespace Os {
@@ -52,22 +53,40 @@ namespace Os {
     const U16 NumberFiles = 2;
 
     const char* File1 = "/bin0/file0";
+    const char* File2 = "/bin0/file0.crc32";
 
     clearFileBuffer();
 
     // Instantiate the Rules
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
     OpenFile openFile(File1);
+    OpenFileNotExist openFileNotExist(File2);
     CloseFile closeFile(File1);
-    WriteData writeData(File1, FILE_SIZE, 0xFF);
+    WriteData writeData1(File1, FILE_SIZE, 0xFF);
+    WriteData writeData(File1, FILE_SIZE/2, 0xFF);
     CheckFileSize checkFileSize(File1, FILE_SIZE);
     OpenRead openRead(File1);
     ReadData readData(File1, FILE_SIZE/2);
+    ReadData readData1(File1, FILE_SIZE);
     Cleanup cleanup;
+    ResetFile resetFile(File1);
 
     // Run the Rules
     initFileSystem.apply(*this);
     openFile.apply(*this);
+    writeData.apply(*this);
+    writeData1.apply(*this);
+    writeData1.apply(*this);
+    //writeData1.apply(*this);
+    //writeData.apply(*this);
+    //writeData.apply(*this);
+    // resetFile.apply(*this);
+    // readData.apply(*this);
+    // readData1.apply(*this);
+    // readData.apply(*this);
+    // readData1.apply(*this);
+    
+    cleanup.apply(*this);
   }
 
   // ----------------------------------------------------------------------
@@ -111,44 +130,6 @@ namespace Os {
     cleanup.apply(*this);
   }
 
-  // ----------------------------------------------------------------------
-  // BadOpenTest
-  // ----------------------------------------------------------------------
-  void Tester ::
-    BadOpenTest()
-  {
-    const U16 NumberBins = 1;
-    const U16 NumberFiles = 2;
-
-    const char* File1 = "/bin0/file0";
-    const char* File2 = "/bin0/file2";
-
-    const U16 TotalFiles = NumberBins * NumberFiles;
-    clearFileBuffer();
-
-    // Instantiate the Rules
-    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
-    OpenFile openFile1(File1);
-    OpenFile openFile2(File2);
-    CloseFile closeFile1(File1);
-    CloseFile closeFile2(File2);
-    OpenNoPerm openNoPerm1(File1);
-    OpenNoPerm openNoPerm2(File2);
-
-    Cleanup cleanup;
-
-    // Run the Rules
-    initFileSystem.apply(*this);
-    openFile1.apply(*this);
-    openFile2.apply(*this);
-    //openFile2.apply(*this);
-    // openNoPerm1.apply(*this);
-    // openNoPerm2.apply(*this);
-    //closeFile1.apply(*this);
-    //closeFile2.apply(*this);
-
-    cleanup.apply(*this);
-  }
 
   // ----------------------------------------------------------------------
   // ReWriteTest
@@ -494,7 +475,7 @@ namespace Os {
     freeSpace.apply(*this);
 
     cleanup.apply(*this);
-    
+
   }
 
 
@@ -513,6 +494,7 @@ namespace Os {
 
     FwNativeUIntType binIndex = 0;
     FwNativeUIntType fileIndex = 0;
+
     I16 stat = sscanf(fileName, filePathSpec, &binIndex, &fileIndex);
     if (stat != 2)
     {
@@ -526,7 +508,10 @@ namespace Os {
 
   Tester::FileModel* Tester::getFileModel(const char *filename)
   {
-      I32 fileIndex = this->getIndex(filename);
+      I16 fileIndex = this->getIndex(filename);
+
+      FW_ASSERT(fileIndex < MAX_TOTAL_FILES && fileIndex >= 0, fileIndex);
+
       return &(this->fileModels[fileIndex]);
   }
 

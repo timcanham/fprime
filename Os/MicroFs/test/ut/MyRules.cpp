@@ -153,7 +153,8 @@
         ) 
   {
     this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-    return (fileModel->mode == Os::Tester::FileModel::OPEN_WRITE);
+    return (fileModel->mode != Os::Tester::FileModel::CLOSED);
+    
   }
 
   
@@ -161,24 +162,32 @@
             Os::Tester& state //!< The test state
         ) 
   {
-    printf("--> Rule: %s %d bytes\n", this->name, this->size);
+    
+    NATIVE_UINT_TYPE fillSize;
+    
+    if ((fileModel->curPtr + this->size) > Tester::FILE_SIZE) {
+      fillSize = Tester::FILE_SIZE - fileModel->curPtr;
+    } else {
+      fillSize = this->size;
+    }
 
-    ASSERT_LE(this->fileModel->curPtr + this->size, Tester::FILE_SIZE);
-    memset(this->fileModel->buffOut + fileModel->curPtr, this->value, this->size);
+    memset(this->fileModel->buffOut + fileModel->curPtr, this->value, fillSize);
+    
     NATIVE_INT_TYPE retSize = this->size;
     Os::File::Status stat = fileModel->fileDesc.write(this->fileModel->buffOut + this->fileModel->curPtr, retSize);
-
-    this->fileModel->curPtr += this->size;
     ASSERT_EQ(stat, Os::File::OP_OK);
-    ASSERT_EQ(retSize, this->size);
+    ASSERT_LE(this->fileModel->curPtr + retSize, Tester::FILE_SIZE);
 
-    //Update FileModel size
-
+    //Update FileModel
+    this->fileModel->curPtr += fillSize;
     // Check if the currSize is to be increased.
     if (fileModel->curPtr > fileModel->size)
     {
         fileModel->size = fileModel->curPtr;
     }
+
+
+    printf("--> Rule: %s %d bytes\n", this->name, retSize);
 
   }
 
@@ -204,7 +213,7 @@
         ) 
   {
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-      return (fileModel->mode == Os::Tester::FileModel::OPEN_READ);
+      return (fileModel->mode != Os::Tester::FileModel::CLOSED);
   }
 
   
@@ -212,7 +221,6 @@
             Os::Tester& state //!< The test state
         ) 
   {
-      printf("--> Rule: %s \n", this->name);
 
       BYTE buffIn[state.testCfg.bins[0].fileSize];
       NATIVE_INT_TYPE bufferSize = sizeof(buffIn);
@@ -222,11 +230,17 @@
       Os::File::Status stat = this->fileModel->fileDesc.read(buffIn, retSize);
 
       ASSERT_EQ(stat, Os::File::OP_OK);
-      ASSERT_EQ(retSize, this->size);
+
+      ASSERT_LE(retSize, fileModel->size - fileModel->curPtr);
 
       // Check the returned data
-      ASSERT_LE(fileModel->curPtr + this->size, Tester::FILE_SIZE);
-      ASSERT_EQ(0,memcmp(buffIn, this->fileModel->buffOut + this->fileModel->curPtr, this->size));
+      ASSERT_LE(fileModel->curPtr + retSize, Tester::FILE_SIZE);
+      ASSERT_EQ(0,memcmp(buffIn, this->fileModel->buffOut + this->fileModel->curPtr, retSize));
+
+      // Update the FileModel
+      fileModel->curPtr += retSize;
+
+      printf("--> Rule: %s %d bytes\n", this->name, retSize);
 
   }
 
@@ -421,9 +435,7 @@
         ) 
   {
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-      this->fileModel->mode == Os::Tester::FileModel::CLOSED;
-
-      return true;
+      return (this->fileModel->mode != Os::Tester::FileModel::CLOSED);
   }
 
   
@@ -499,7 +511,7 @@
         ) 
   {
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-      return true;
+      return (this->fileModel->mode == Os::Tester::FileModel::CLOSED);
   }
 
   
@@ -513,6 +525,42 @@
     ASSERT_EQ(Os::File::OP_OK, stat);
 
     this->fileModel->mode = Os::Tester::FileModel::OPEN_READ;
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  OpenFileNotExist
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::OpenFileNotExist::OpenFileNotExist(const char* filename) :
+        STest::Rule<Os::Tester>("OpenFileNotExist")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::OpenFileNotExist::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return true;
+  }
+
+  
+  void Os::Tester::OpenFileNotExist::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+    printf("--> Rule: %s %s\n", this->name, this->filename);
+
+    Os::File fileDesc;
+    Os::File::Status stat = fileDesc.open(this->filename, Os::File::OPEN_READ);
+    ASSERT_EQ(Os::File::DOESNT_EXIST, stat);
 
   }
 
