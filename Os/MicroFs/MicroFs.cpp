@@ -642,6 +642,7 @@ Status removeFile(const char* path) {
 
     // delete the file by setting current size to be -1
     fState->currSize = -1;
+    fState->loc = -1;
 
     return OP_OK;
 }
