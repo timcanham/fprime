@@ -460,11 +460,10 @@
   //
   // ------------------------------------------------------------------------------------------------------
   
-  Os::Tester::CheckFileSize::CheckFileSize(const char *filename, FwSizeType size) :
+  Os::Tester::CheckFileSize::CheckFileSize(const char *filename) :
         STest::Rule<Os::Tester>("CheckFileSize")
   {
     this->filename = filename;
-    this->size = size;
   }
 
 
@@ -481,13 +480,17 @@
             Os::Tester& state //!< The test state
         ) 
   {
-      printf("--> Rule: %s %s, size = %d\n", this->name, this->filename, this->size);
-      FwSizeType actualSize = this->size;
+      FwSizeType actualSize;
       FileSystem::Status stat = FileSystem::getFileSize(this->filename, actualSize);
       ASSERT_EQ(FileSystem::OP_OK, stat);
-      ASSERT_EQ(actualSize, this->size);
+
+      if (actualSize == -1) {
+        actualSize = 0;
+      }
 
       ASSERT_EQ(actualSize, this->fileModel->size);
+      printf("--> Rule: %s %s, size = %d\n", this->name, this->filename, this->fileModel->size);
+
   }
 
 

@@ -53,18 +53,27 @@ namespace Os {
     const U16 NumberFiles = 2;
 
     const char* File1 = "/bin0/file0";
-    const char* File2 = "/bin0/file0.crc32";
+    const char* File2 = "/bin0/file1";
+    const char* CrcFile = "/bin0/file0.crc32";
 
     clearFileBuffer();
 
     // Instantiate the Rules
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
     OpenFile openFile(File1);
-    OpenFileNotExist openFileNotExist(File2);
+    OpenFileNotExist openFileNotExist(CrcFile);
     CloseFile closeFile(File1);
-    WriteData writeData1(File1, FILE_SIZE, 0xFF);
-    WriteData writeData(File1, FILE_SIZE/2, 0xFF);
-    CheckFileSize checkFileSize(File1, FILE_SIZE);
+    WriteData writeDataSmallChunk(File1, FILE_SIZE/4, 0xFF);
+    WriteData writeDataMediumChunk(File1, FILE_SIZE/2, 0xFF);
+    WriteData writeDataLargeChunk(File1, 3*FILE_SIZE/4, 0xFF);
+    WriteData writeDataFullChunk(File1, FILE_SIZE, 0xFF);
+    ReadData readDataSmallChunk(File1, FILE_SIZE/4);
+    ReadData readDataMediumChunk(File1, FILE_SIZE/2);
+    ReadData readDataLargeChunk(File1, 3*FILE_SIZE/4);
+    ReadData readDataFullChunk(File1, FILE_SIZE);
+
+    CheckFileSize checkFileSize(File1);
+
     OpenRead openRead(File1);
     ReadData readData(File1, FILE_SIZE/2);
     ReadData readData1(File1, FILE_SIZE);
@@ -73,19 +82,36 @@ namespace Os {
 
     // Run the Rules
     initFileSystem.apply(*this);
-    openFile.apply(*this);
-    writeData.apply(*this);
-    writeData1.apply(*this);
-    writeData1.apply(*this);
-    //writeData1.apply(*this);
-    //writeData.apply(*this);
-    //writeData.apply(*this);
-    // resetFile.apply(*this);
-    // readData.apply(*this);
-    // readData1.apply(*this);
-    // readData.apply(*this);
-    // readData1.apply(*this);
-    
+
+    // Run the Rules randomly
+    STest::Rule<Tester>* rules[] = { 
+                                     &openFile,
+                                     &openFileNotExist,
+                                     &closeFile,
+                                     &checkFileSize,
+                                     &writeDataSmallChunk,
+                                     &writeDataMediumChunk, 
+                                     &writeDataLargeChunk,
+                                     &writeDataFullChunk,
+                                     &readDataSmallChunk,
+                                     &readDataMediumChunk, 
+                                     &readDataLargeChunk,
+                                     &readDataFullChunk,
+                                     &resetFile
+                                  };
+    STest::RandomScenario<Tester> randomScenario(
+        "RandomScenario",
+        rules,
+        sizeof(rules) / sizeof(STest::Rule<Tester>*)
+    );
+    STest::BoundedScenario<Tester> boundedScenario(
+        "BoundedScenario",
+        randomScenario,
+        100
+    );
+    const U32 numSteps = boundedScenario.run(*this);
+    ASSERT_EQ(100, numSteps);
+
     cleanup.apply(*this);
   }
 
@@ -107,7 +133,7 @@ namespace Os {
     OpenFile openFile1(File1);
     CloseFile closeFile(File1);
     WriteData writeData(File1, FILE_SIZE, 0xFF);
-    CheckFileSize checkFileSize(File1, FILE_SIZE);
+    CheckFileSize checkFileSize(File1);
     OpenRead openRead(File1);
     ReadData readData(File1, FILE_SIZE/2);
     Cleanup cleanup;
@@ -157,11 +183,11 @@ namespace Os {
     OpenRead openRead1(File1);
     ReadData readData1(File1, FILE_SIZE/2);
     ResetFile resetFile1(File1);
-    CheckFileSize checkFileSize(File1, FILE_SIZE);
-    CheckFileSize checkFileSizeZero(File1, 0);
-    CheckFileSize checkFileSizeHalf(File1, FILE_SIZE/2);
-    CheckFileSize checkFileSizeQuater(File1, FILE_SIZE/4);
-    CheckFileSize checkFileSizeThreeQuaters(File1, 3*FILE_SIZE/4);
+    CheckFileSize checkFileSize(File1);
+    CheckFileSize checkFileSizeZero(File1);
+    CheckFileSize checkFileSizeHalf(File1);
+    CheckFileSize checkFileSizeQuater(File1);
+    CheckFileSize checkFileSizeThreeQuaters(File1);
 
     Cleanup cleanup;
 

@@ -370,7 +370,7 @@
             // ----------------------------------------------------------------------
 
             //! Constructor
-            CheckFileSize(const char* filename, FwSizeType size);
+            CheckFileSize(const char* filename);
 
             // ----------------------------------------------------------------------
             // Public member functions
@@ -387,7 +387,6 @@
             );
 
             const char* filename;
-            FwSizeType size;
             Os::Tester::FileModel *fileModel;
 
     };

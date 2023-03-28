@@ -51,13 +51,11 @@ TEST(FileOps, ReWriteTest) {
     Os::Tester tester;
     tester.ReWriteTest();
 }
-#if 0
 
 TEST(FileOps, NukeTest) {
     Os::Tester tester;
     tester.NukeTest();
 }
-#endif
 
 
 int main(int argc, char **argv) {
