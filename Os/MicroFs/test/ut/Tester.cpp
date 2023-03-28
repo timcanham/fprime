@@ -122,12 +122,18 @@ namespace Os {
     Cleanup cleanup;
     ResetFile resetFile(File1);
 
+    OpenCreate openCreate(File1);
+    OpenAppend openAppend(File1);
+
+
     // Run the Rules
     initFileSystem.apply(*this);
 
     // Run the Rules randomly
     STest::Rule<Tester>* rules[] = { 
                                      &openFile,
+                                     &openCreate,
+                                     &openAppend,
                                      &openFileNotExist,
                                      &closeFile,
                                      &checkFileSize,
@@ -149,10 +155,10 @@ namespace Os {
     STest::BoundedScenario<Tester> boundedScenario(
         "BoundedScenario",
         randomScenario,
-        100
+        1000
     );
     const U32 numSteps = boundedScenario.run(*this);
-    ASSERT_EQ(100, numSteps);
+    ASSERT_EQ(1000, numSteps);
 
     cleanup.apply(*this);
   }
