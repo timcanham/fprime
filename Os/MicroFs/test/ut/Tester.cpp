@@ -68,6 +68,7 @@ namespace Os {
     CheckFileSize checkFileSize(File1);
     CloseFile closeFile(File1);
     OpenAppend openAppend(File1);
+    RemoveFile removeFile(File1);
 
     Cleanup cleanup;
 
@@ -80,7 +81,10 @@ namespace Os {
     openAppend.apply(*this);
     writeDataSmallChunk.apply(*this);
     checkFileSize.apply(*this);
-    
+    closeFile.apply(*this);
+    removeFile.apply(*this);
+    openFile.apply(*this);
+  
     cleanup.apply(*this);
   }
 
@@ -124,6 +128,7 @@ namespace Os {
 
     OpenCreate openCreate(File1);
     OpenAppend openAppend(File1);
+    RemoveFile removeFile(File1);
 
 
     // Run the Rules
@@ -134,6 +139,7 @@ namespace Os {
                                      &openFile,
                                      &openCreate,
                                      &openAppend,
+                                     &removeFile,
                                      &openFileNotExist,
                                      &closeFile,
                                      &checkFileSize,

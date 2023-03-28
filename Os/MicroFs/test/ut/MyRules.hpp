@@ -573,3 +573,40 @@
     };
 
     
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  RemoveFile
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct RemoveFile : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            RemoveFile(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+
+    };
+
+    

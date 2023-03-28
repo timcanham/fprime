@@ -7,6 +7,12 @@
 #include <Fw/Types/String.hpp>
 #include "Tester.hpp"
 
+#define FULL_TEST
+#define NUKE_TEST
+#define ODD_TEST
+
+
+#ifdef FULL_TEST
 TEST(Initialization, InitTest) {
     Os::Tester tester;
     tester.InitTest();
@@ -51,16 +57,22 @@ TEST(FileOps, ReWriteTest) {
     Os::Tester tester;
     tester.ReWriteTest();
 }
+#endif
 
+#ifdef NUKE_TEST
 TEST(FileOps, NukeTest) {
     Os::Tester tester;
     tester.NukeTest();
 }
+#endif
 
+#ifdef ODD_TEST
 TEST(FileOps, OddTests) {
     Os::Tester tester;
     tester.OddTests();
 }
+#endif
+
 
 
 int main(int argc, char **argv) {

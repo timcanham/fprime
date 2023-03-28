@@ -271,7 +271,9 @@
         ) 
   {
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-      return (fileModel->mode != Os::Tester::FileModel::CLOSED);
+      return ((fileModel->mode != Os::Tester::FileModel::CLOSED) &&
+              (fileModel->mode != Os::Tester::FileModel::DOESNT_EXIST));
+      
   }
 
   
@@ -685,6 +687,47 @@
 
     this->fileModel->mode = Os::Tester::FileModel::OPEN_WRITE;
     this->fileModel->curPtr = this->fileModel->size;
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  RemoveFile
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::RemoveFile::RemoveFile(const char* filename) :
+        STest::Rule<Os::Tester>("RemoveFile")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::RemoveFile::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return (this->fileModel->mode == Os::Tester::FileModel::CLOSED);
+
+  }
+
+  
+  void Os::Tester::RemoveFile::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+    printf("--> Rule: %s %s\n", this->name, this->filename);
+
+    Os::FileSystem::Status stat = Os::FileSystem::removeFile(this->filename);
+    ASSERT_EQ(Os::FileSystem::OP_OK, stat);
+
+    this->fileModel->mode = Os::Tester::FileModel::DOESNT_EXIST;
+    this->fileModel->curPtr = 0;
+    this->fileModel->size = 0;
 
   }
 
