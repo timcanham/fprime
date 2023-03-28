@@ -69,6 +69,7 @@ namespace Os {
     CloseFile closeFile(File1);
     OpenAppend openAppend(File1);
     RemoveFile removeFile(File1);
+    RemoveBusyFile removeBusyFile(File1);
 
     Cleanup cleanup;
 
@@ -77,6 +78,7 @@ namespace Os {
     openReadEarly.apply(*this);
     openFile.apply(*this);
     writeDataSmallChunk.apply(*this);
+    removeBusyFile.apply(*this);
     closeFile.apply(*this);
     openAppend.apply(*this);
     writeDataSmallChunk.apply(*this);
@@ -129,6 +131,7 @@ namespace Os {
     OpenCreate openCreate(File1);
     OpenAppend openAppend(File1);
     RemoveFile removeFile(File1);
+    RemoveBusyFile removeBusyFile(File1);
 
 
     // Run the Rules
@@ -140,6 +143,7 @@ namespace Os {
                                      &openCreate,
                                      &openAppend,
                                      &removeFile,
+                                     &removeBusyFile,
                                      &openFileNotExist,
                                      &closeFile,
                                      &checkFileSize,
@@ -161,10 +165,10 @@ namespace Os {
     STest::BoundedScenario<Tester> boundedScenario(
         "BoundedScenario",
         randomScenario,
-        1000
+        2000
     );
     const U32 numSteps = boundedScenario.run(*this);
-    ASSERT_EQ(1000, numSteps);
+    ASSERT_EQ(2000, numSteps);
 
     cleanup.apply(*this);
   }

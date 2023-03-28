@@ -731,3 +731,41 @@
 
   }
 
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  RemoveBusyFile
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::RemoveBusyFile::RemoveBusyFile(const char* filename) :
+        STest::Rule<Os::Tester>("RemoveBusyFile")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::RemoveBusyFile::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return ((this->fileModel->mode != Os::Tester::FileModel::CLOSED) &&
+              (this->fileModel->mode != Os::Tester::FileModel::DOESNT_EXIST));
+      
+  }
+
+  
+  void Os::Tester::RemoveBusyFile::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+    printf("--> Rule: %s %s\n", this->name, this->filename);
+
+    Os::FileSystem::Status stat = Os::FileSystem::removeFile(this->filename);
+    ASSERT_EQ(Os::FileSystem::BUSY, stat);
+
+  }
+
