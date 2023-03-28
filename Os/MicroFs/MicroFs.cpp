@@ -204,18 +204,12 @@ File::Status File::open(const char* fileName, File::Mode mode, bool include_excl
         return File::Status::NO_PERMISSION;
     }
 
-    // store mode
-    this->m_mode = mode;
 
     // return an error if it's already open
     if (state->loc != -1) {
         return File::Status::NO_PERMISSION;
     }
 
-    // initialize operation location to zero
-    state->loc = 0;
-    // set file descriptor to index into state structure
-    this->m_fd = entry + MICROFS_FD_OFFSET;
 
     switch (mode) {
         case OPEN_READ:
@@ -223,6 +217,7 @@ File::Status File::open(const char* fileName, File::Mode mode, bool include_excl
             if (-1 == state->currSize) {
                 return File::Status::DOESNT_EXIST;
             }
+            state->loc = 0;
             break;
         case OPEN_WRITE:
         case OPEN_SYNC_WRITE:         // fall through; same for microfs
@@ -232,19 +227,33 @@ File::Status File::open(const char* fileName, File::Mode mode, bool include_excl
             if (-1 == state->currSize) {
                 state->currSize = 0;
             }
+            state->loc = 0;
             break;
         case OPEN_CREATE:
             // truncate file length to zero
             state->currSize = 0;
+            state->loc = 0;
             break;
         case OPEN_APPEND:
             // initialize write location to length of file for append
+            // If the file has never previously been opened, then initialize the
+            // size to 0.
+            if (-1 == state->currSize) {
+                state->currSize = 0;
+            }
+
             state->loc = state->currSize;
             break;
         default:
             FW_ASSERT(0, mode);
             break;
     }
+
+    // store mode
+    this->m_mode = mode;
+    
+    // set file descriptor to index into state structure
+    this->m_fd = entry + MICROFS_FD_OFFSET;
 
     return stat;
 }
@@ -631,8 +640,14 @@ Status removeFile(const char* path) {
     MicroFsFileState* fState = getFileStateFromIndex(index);
     FW_ASSERT(fState);
 
+    if (fState->loc != -1)
+    {
+        return BUSY;
+    }
+
     // delete the file by setting current size to be -1
     fState->currSize = -1;
+    fState->loc = -1;
 
     return OP_OK;
 }

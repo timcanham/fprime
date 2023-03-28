@@ -1,9 +1,10 @@
 
 #include "Tester.hpp"
 #include <stdio.h>
-#include <gtest/gtest.h>
 #include <Fw/Test/UnitTest.hpp>
 #include <Fw/Types/MallocAllocator.hpp>
+#include <Fw/Types/Assert.hpp>
+
 
 
 namespace Os {
@@ -24,7 +25,8 @@ namespace Os {
 
   Tester :: FileModel ::
       FileModel() : 
-        mode(CLOSED)
+        mode(DOESNT_EXIST),
+        size(0)
   {
   }
 
@@ -32,6 +34,7 @@ namespace Os {
       clear()
   {
     this->curPtr = 0;
+    this->size = 0;
     memset(this->buffOut, 0xA5, FILE_SIZE);
   }
 
@@ -39,6 +42,52 @@ namespace Os {
   // ----------------------------------------------------------------------
   // Tests
   // ----------------------------------------------------------------------
+
+  // ----------------------------------------------------------------------
+  // OddTests
+  // ----------------------------------------------------------------------
+  void Tester ::
+    OddTests()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file0";
+    const char* File2 = "/bin0/file1";
+    const char* CrcFile = "/bin0/file0.crc32";
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenRead openRead(File1);
+    OpenFile openFile(File1);
+    OpenReadEarly openReadEarly(File1);
+    OpenCreate openCreate(File1);
+    WriteData writeDataSmallChunk(File1, FILE_SIZE/4, 0xFF);
+    CheckFileSize checkFileSize(File1);
+    CloseFile closeFile(File1);
+    OpenAppend openAppend(File1);
+    RemoveFile removeFile(File1);
+
+    Cleanup cleanup;
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openReadEarly.apply(*this);
+    openFile.apply(*this);
+    writeDataSmallChunk.apply(*this);
+    closeFile.apply(*this);
+    openAppend.apply(*this);
+    writeDataSmallChunk.apply(*this);
+    checkFileSize.apply(*this);
+    closeFile.apply(*this);
+    removeFile.apply(*this);
+    openFile.apply(*this);
+  
+    cleanup.apply(*this);
+  }
+
 
   // ----------------------------------------------------------------------
   // NukeTest
@@ -50,22 +99,74 @@ namespace Os {
     const U16 NumberFiles = 2;
 
     const char* File1 = "/bin0/file0";
+    const char* File2 = "/bin0/file1";
+    const char* CrcFile = "/bin0/file0.crc32";
 
     clearFileBuffer();
 
     // Instantiate the Rules
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
     OpenFile openFile(File1);
+    OpenFileNotExist openFileNotExist(CrcFile);
     CloseFile closeFile(File1);
-    WriteData writeData(File1, FILE_SIZE, 0xFF);
-    CheckFileSize checkFileSize(File1, FILE_SIZE);
+    WriteData writeDataSmallChunk(File1, FILE_SIZE/4, 0xFF);
+    WriteData writeDataMediumChunk(File1, FILE_SIZE/2, 0xFF);
+    WriteData writeDataLargeChunk(File1, 3*FILE_SIZE/4, 0xFF);
+    WriteData writeDataFullChunk(File1, FILE_SIZE, 0xFF);
+    ReadData readDataSmallChunk(File1, FILE_SIZE/4);
+    ReadData readDataMediumChunk(File1, FILE_SIZE/2);
+    ReadData readDataLargeChunk(File1, 3*FILE_SIZE/4);
+    ReadData readDataFullChunk(File1, FILE_SIZE);
+
+    CheckFileSize checkFileSize(File1);
+
     OpenRead openRead(File1);
     ReadData readData(File1, FILE_SIZE/2);
+    ReadData readData1(File1, FILE_SIZE);
     Cleanup cleanup;
+    ResetFile resetFile(File1);
+
+    OpenCreate openCreate(File1);
+    OpenAppend openAppend(File1);
+    RemoveFile removeFile(File1);
+
 
     // Run the Rules
     initFileSystem.apply(*this);
-    openFile.apply(*this);
+
+    // Run the Rules randomly
+    STest::Rule<Tester>* rules[] = { 
+                                     &openFile,
+                                     &openCreate,
+                                     &openAppend,
+                                     &removeFile,
+                                     &openFileNotExist,
+                                     &closeFile,
+                                     &checkFileSize,
+                                     &writeDataSmallChunk,
+                                     &writeDataMediumChunk, 
+                                     &writeDataLargeChunk,
+                                     &writeDataFullChunk,
+                                     &readDataSmallChunk,
+                                     &readDataMediumChunk, 
+                                     &readDataLargeChunk,
+                                     &readDataFullChunk,
+                                     &resetFile
+                                  };
+    STest::RandomScenario<Tester> randomScenario(
+        "RandomScenario",
+        rules,
+        sizeof(rules) / sizeof(STest::Rule<Tester>*)
+    );
+    STest::BoundedScenario<Tester> boundedScenario(
+        "BoundedScenario",
+        randomScenario,
+        1000
+    );
+    const U32 numSteps = boundedScenario.run(*this);
+    ASSERT_EQ(1000, numSteps);
+
+    cleanup.apply(*this);
   }
 
   // ----------------------------------------------------------------------
@@ -86,7 +187,7 @@ namespace Os {
     OpenFile openFile1(File1);
     CloseFile closeFile(File1);
     WriteData writeData(File1, FILE_SIZE, 0xFF);
-    CheckFileSize checkFileSize(File1, FILE_SIZE);
+    CheckFileSize checkFileSize(File1);
     OpenRead openRead(File1);
     ReadData readData(File1, FILE_SIZE/2);
     Cleanup cleanup;
@@ -109,44 +210,6 @@ namespace Os {
     cleanup.apply(*this);
   }
 
-  // ----------------------------------------------------------------------
-  // BadOpenTest
-  // ----------------------------------------------------------------------
-  void Tester ::
-    BadOpenTest()
-  {
-    const U16 NumberBins = 1;
-    const U16 NumberFiles = 2;
-
-    const char* File1 = "/bin0/file0";
-    const char* File2 = "/bin0/file2";
-
-    const U16 TotalFiles = NumberBins * NumberFiles;
-    clearFileBuffer();
-
-    // Instantiate the Rules
-    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
-    OpenFile openFile1(File1);
-    OpenFile openFile2(File2);
-    CloseFile closeFile1(File1);
-    CloseFile closeFile2(File2);
-    OpenNoPerm openNoPerm1(File1);
-    OpenNoPerm openNoPerm2(File2);
-
-    Cleanup cleanup;
-
-    // Run the Rules
-    initFileSystem.apply(*this);
-    openFile1.apply(*this);
-    openFile2.apply(*this);
-    //openFile2.apply(*this);
-    // openNoPerm1.apply(*this);
-    // openNoPerm2.apply(*this);
-    //closeFile1.apply(*this);
-    //closeFile2.apply(*this);
-
-    cleanup.apply(*this);
-  }
 
   // ----------------------------------------------------------------------
   // ReWriteTest
@@ -174,11 +237,11 @@ namespace Os {
     OpenRead openRead1(File1);
     ReadData readData1(File1, FILE_SIZE/2);
     ResetFile resetFile1(File1);
-    CheckFileSize checkFileSize(File1, FILE_SIZE);
-    CheckFileSize checkFileSizeZero(File1, 0);
-    CheckFileSize checkFileSizeHalf(File1, FILE_SIZE/2);
-    CheckFileSize checkFileSizeQuater(File1, FILE_SIZE/4);
-    CheckFileSize checkFileSizeThreeQuaters(File1, 3*FILE_SIZE/4);
+    CheckFileSize checkFileSize(File1);
+    CheckFileSize checkFileSizeZero(File1);
+    CheckFileSize checkFileSizeHalf(File1);
+    CheckFileSize checkFileSizeQuater(File1);
+    CheckFileSize checkFileSizeThreeQuaters(File1);
 
     Cleanup cleanup;
 
@@ -492,7 +555,7 @@ namespace Os {
     freeSpace.apply(*this);
 
     cleanup.apply(*this);
-    
+
   }
 
 
@@ -511,6 +574,7 @@ namespace Os {
 
     FwNativeUIntType binIndex = 0;
     FwNativeUIntType fileIndex = 0;
+
     I16 stat = sscanf(fileName, filePathSpec, &binIndex, &fileIndex);
     if (stat != 2)
     {
@@ -524,7 +588,10 @@ namespace Os {
 
   Tester::FileModel* Tester::getFileModel(const char *filename)
   {
-      I32 fileIndex = this->getIndex(filename);
+      I16 fileIndex = this->getIndex(filename);
+
+      FW_ASSERT(fileIndex < MAX_TOTAL_FILES && fileIndex >= 0, fileIndex);
+
       return &(this->fileModels[fileIndex]);
   }
 

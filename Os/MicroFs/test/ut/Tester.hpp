@@ -38,6 +38,7 @@ namespace Os {
       class FileModel {
           public:
             enum Mode {
+              DOESNT_EXIST,
               CLOSED,
               OPEN_READ,
               OPEN_WRITE
@@ -50,6 +51,7 @@ namespace Os {
             Os::File fileDesc;
             BYTE buffOut[FILE_SIZE];
             NATIVE_INT_TYPE curPtr;
+            I32 size;
       };
 
       #include "MyRules.hpp"
@@ -85,6 +87,7 @@ namespace Os {
       void BadOpenTest();
       void FileSizeTest();
       void NukeTest();
+      void OddTests();
 
       // Helper functions
       void clearFileBuffer();
