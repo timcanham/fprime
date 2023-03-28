@@ -640,6 +640,11 @@ Status removeFile(const char* path) {
     MicroFsFileState* fState = getFileStateFromIndex(index);
     FW_ASSERT(fState);
 
+    if (fState->loc != -1)
+    {
+        return BUSY;
+    }
+
     // delete the file by setting current size to be -1
     fState->currSize = -1;
     fState->loc = -1;
