@@ -57,6 +57,11 @@ TEST(FileOps, NukeTest) {
     tester.NukeTest();
 }
 
+TEST(FileOps, OddTests) {
+    Os::Tester tester;
+    tester.OddTests();
+}
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

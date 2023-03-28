@@ -38,6 +38,7 @@ namespace Os {
       class FileModel {
           public:
             enum Mode {
+              DOESNT_EXIST,
               CLOSED,
               OPEN_READ,
               OPEN_WRITE
@@ -86,6 +87,7 @@ namespace Os {
       void BadOpenTest();
       void FileSizeTest();
       void NukeTest();
+      void OddTests();
 
       // Helper functions
       void clearFileBuffer();

@@ -79,7 +79,9 @@
       
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
 
-      return (fileModel->mode == Os::Tester::FileModel::CLOSED);
+      return ((fileModel->mode == Os::Tester::FileModel::CLOSED) ||
+              (fileModel->mode == Os::Tester::FileModel::DOESNT_EXIST));
+      
   }
 
   
@@ -153,8 +155,9 @@
         ) 
   {
     this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-    return (fileModel->mode != Os::Tester::FileModel::CLOSED);
-    
+    return  ((fileModel->mode == Os::Tester::FileModel::OPEN_READ) ||
+             (fileModel->mode == Os::Tester::FileModel::OPEN_WRITE));
+
   }
 
   
@@ -213,7 +216,10 @@
         ) 
   {
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-      return (fileModel->mode != Os::Tester::FileModel::CLOSED);
+      return  ((fileModel->mode == Os::Tester::FileModel::OPEN_READ) ||
+               (fileModel->mode == Os::Tester::FileModel::OPEN_WRITE));
+      
+
   }
 
   
@@ -564,6 +570,121 @@
     Os::File fileDesc;
     Os::File::Status stat = fileDesc.open(this->filename, Os::File::OPEN_READ);
     ASSERT_EQ(Os::File::DOESNT_EXIST, stat);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  OpenReadEarly
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::OpenReadEarly::OpenReadEarly(const char* filename) :
+        STest::Rule<Os::Tester>("OpenReadEarly")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::OpenReadEarly::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return (this->fileModel->mode == Os::Tester::FileModel::DOESNT_EXIST);
+  }
+
+  
+  void Os::Tester::OpenReadEarly::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+    printf("--> Rule: %s %s\n", this->name, this->filename);
+    Os::File::Status stat = this->fileModel->fileDesc.open(this->filename, Os::File::OPEN_READ);
+    ASSERT_EQ(Os::File::DOESNT_EXIST, stat);
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  OpenCreate
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::OpenCreate::OpenCreate(const char* filename) :
+        STest::Rule<Os::Tester>("OpenCreate")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::OpenCreate::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return ((this->fileModel->mode != Os::Tester::FileModel::OPEN_READ) &&
+             (this->fileModel->mode != Os::Tester::FileModel::OPEN_WRITE));
+  }
+
+  
+  void Os::Tester::OpenCreate::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+    printf("--> Rule: %s %s\n", this->name, this->filename);
+    Os::File::Status stat = this->fileModel->fileDesc.open(this->filename, Os::File::OPEN_CREATE);
+    ASSERT_EQ(Os::File::OP_OK, stat);
+
+    this->fileModel->mode = Os::Tester::FileModel::OPEN_WRITE;
+    this->fileModel->curPtr = 0;
+    this->fileModel->size = 0;
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  OpenAppend
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::OpenAppend::OpenAppend(const char* filename) :
+        STest::Rule<Os::Tester>("OpenAppend")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::OpenAppend::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return ((this->fileModel->mode != Os::Tester::FileModel::OPEN_READ) &&
+             (this->fileModel->mode != Os::Tester::FileModel::OPEN_WRITE));
+
+  }
+
+  
+  void Os::Tester::OpenAppend::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+    printf("--> Rule: %s %s\n", this->name, this->filename);
+
+    Os::File::Status stat = this->fileModel->fileDesc.open(this->filename, Os::File::OPEN_APPEND);
+    ASSERT_EQ(Os::File::OP_OK, stat);
+
+    this->fileModel->mode = Os::Tester::FileModel::OPEN_WRITE;
+    this->fileModel->curPtr = this->fileModel->size;
 
   }
 

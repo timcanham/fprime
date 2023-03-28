@@ -464,3 +464,112 @@
     };
 
     
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  OpenReadEarly
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct OpenReadEarly : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            OpenReadEarly(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  OpenCreate
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct OpenCreate : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            OpenCreate(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  OpenAppend
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct OpenAppend : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            OpenAppend(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+
+    };
+
+    

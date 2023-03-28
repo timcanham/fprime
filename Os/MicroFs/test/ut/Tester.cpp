@@ -25,7 +25,7 @@ namespace Os {
 
   Tester :: FileModel ::
       FileModel() : 
-        mode(CLOSED),
+        mode(DOESNT_EXIST),
         size(0)
   {
   }
@@ -42,6 +42,48 @@ namespace Os {
   // ----------------------------------------------------------------------
   // Tests
   // ----------------------------------------------------------------------
+
+  // ----------------------------------------------------------------------
+  // OddTests
+  // ----------------------------------------------------------------------
+  void Tester ::
+    OddTests()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file0";
+    const char* File2 = "/bin0/file1";
+    const char* CrcFile = "/bin0/file0.crc32";
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenRead openRead(File1);
+    OpenFile openFile(File1);
+    OpenReadEarly openReadEarly(File1);
+    OpenCreate openCreate(File1);
+    WriteData writeDataSmallChunk(File1, FILE_SIZE/4, 0xFF);
+    CheckFileSize checkFileSize(File1);
+    CloseFile closeFile(File1);
+    OpenAppend openAppend(File1);
+
+    Cleanup cleanup;
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openReadEarly.apply(*this);
+    openFile.apply(*this);
+    writeDataSmallChunk.apply(*this);
+    closeFile.apply(*this);
+    openAppend.apply(*this);
+    writeDataSmallChunk.apply(*this);
+    checkFileSize.apply(*this);
+    
+    cleanup.apply(*this);
+  }
+
 
   // ----------------------------------------------------------------------
   // NukeTest
