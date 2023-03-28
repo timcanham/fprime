@@ -236,6 +236,12 @@ File::Status File::open(const char* fileName, File::Mode mode, bool include_excl
             break;
         case OPEN_APPEND:
             // initialize write location to length of file for append
+            // If the file has never previously been opened, then initialize the
+            // size to 0.
+            if (-1 == state->currSize) {
+                state->currSize = 0;
+            }
+
             state->loc = state->currSize;
             break;
         default:
