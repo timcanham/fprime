@@ -648,3 +648,115 @@
     };
 
     
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  IsFileOpen
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct IsFileOpen : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            IsFileOpen(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  MoveFile
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct MoveFile : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            MoveFile(const char* sourcefile, const char* destfile);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* sourcefile;
+            const char* destfile;
+            Os::Tester::FileModel *sourceModel;
+            Os::Tester::FileModel *destModel;
+            
+
+    };
+
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  Directory
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct Directory : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            Directory(const char* dirpath, bool offNominal);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* dirpath;
+            bool offNominal;
+
+    };
+
+    

@@ -80,7 +80,7 @@ namespace Os {
       void OpenWriteReadTest();
       void OpenWriteTwiceReadOnceTest();
       void OpenWriteOnceReadTwiceTest();
-      void OneFileReadDirectory();
+      void ListTest();
       void OpenStressTest();
       void OpenFreeSpaceTest();
       void ReWriteTest();
@@ -88,10 +88,13 @@ namespace Os {
       void FileSizeTest();
       void NukeTest();
       void OddTests();
+      void MoveTest();
+      void DirectoryTest();
 
       // Helper functions
       void clearFileBuffer();
       FileModel* getFileModel(const char *filename);
+      void getFileNames(char fileNames[][20], U16 numBins, U16 numFiles);
 
 
     private:

@@ -9,6 +9,7 @@
 
 #define FULL_TEST
 #define NUKE_TEST
+//#define MOVE_TEST
 #define ODD_TEST
 
 
@@ -33,9 +34,9 @@ TEST(FileOps, OpenWriteOnceReadTwiceTest) {
     tester.OpenWriteOnceReadTwiceTest();
 }
 
-TEST(FileSystemOps, OneFileReadDirectory) {
+TEST(FileSystemOps, ListTest) {
     Os::Tester tester;
-    tester.OneFileReadDirectory();
+    tester.ListTest();
 }
 
 TEST(FileSystemOps, OpenFreeSpaceTest) {
@@ -57,6 +58,11 @@ TEST(FileOps, ReWriteTest) {
     Os::Tester tester;
     tester.ReWriteTest();
 }
+
+TEST(FileOps, DirectoryTest) {
+    Os::Tester tester;
+    tester.DirectoryTest();
+}
 #endif
 
 #ifdef NUKE_TEST
@@ -73,7 +79,12 @@ TEST(FileOps, OddTests) {
 }
 #endif
 
-
+#ifdef MOVE_TEST
+TEST(FileOps, MoveTest) {
+    Os::Tester tester;
+    tester.MoveTest();
+}
+#endif
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

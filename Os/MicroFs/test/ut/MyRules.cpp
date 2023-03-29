@@ -174,7 +174,16 @@
       fillSize = this->size;
     }
 
-    memset(this->fileModel->buffOut + fileModel->curPtr, this->value, fillSize);
+    // Fill the memory buffer with random numbers between 0 and 0xFF inclusive
+    // Seed the random number generate
+    //srand(time(NULL));
+
+    NATIVE_INT_TYPE offset = fileModel->curPtr;
+    for (U32 i=0; i < fillSize; i++)
+    {
+      assert(offset + i < Tester::FILE_SIZE);
+      this->fileModel->buffOut[offset + i] = rand() % 256;
+    }
     
     NATIVE_INT_TYPE retSize = this->size;
     Os::File::Status stat = fileModel->fileDesc.write(this->fileModel->buffOut + this->fileModel->curPtr, retSize);
@@ -189,8 +198,6 @@
         fileModel->size = fileModel->curPtr;
     }
 
-
-    printf("--> Rule: %s %d bytes\n", this->name, retSize);
 
   }
 
@@ -768,4 +775,151 @@
     ASSERT_EQ(Os::FileSystem::BUSY, stat);
 
   }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  IsFileOpen
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::IsFileOpen::IsFileOpen(const char* filename) :
+        STest::Rule<Os::Tester>("IsFileOpen")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::IsFileOpen::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return true;
+  }
+
+  
+  void Os::Tester::IsFileOpen::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      printf("--> Rule: %s %s\n", this->name, this->filename);
+      bool expState;
+      switch (this->fileModel->mode)
+      {
+        case Os::Tester::FileModel::CLOSED:
+        case Os::Tester::FileModel::DOESNT_EXIST:
+          expState = false;
+          break;
+        case Os::Tester::FileModel::OPEN_READ:
+        case Os::Tester::FileModel::OPEN_WRITE:
+          expState = true;
+          break;
+      }
+      ASSERT_EQ(expState, this->fileModel->fileDesc.isOpen());
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  MoveFile
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::MoveFile::MoveFile(const char* sourcefile, const char* destfile) :
+        STest::Rule<Os::Tester>("MoveFile")
+  {
+    this->sourcefile = sourcefile;
+    this->destfile = destfile;
+  }
+
+
+  bool Os::Tester::MoveFile::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->sourceModel = const_cast<Os::Tester&>(state).getFileModel(this->sourcefile);
+      this->destModel = const_cast<Os::Tester&>(state).getFileModel(this->destfile);
+
+      return ((this->sourceModel->mode == Os::Tester::FileModel::CLOSED) &&
+              (this->destModel->mode == Os::Tester::FileModel::CLOSED));
+
+  }
+
+  
+  void Os::Tester::MoveFile::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      printf("--> Rule: %s source: %s, dest: %s\n", this->name, this->sourcefile, this->destfile);
+      Os::FileSystem::Status stat = Os::FileSystem::moveFile(this->sourcefile, this->destfile);
+      ASSERT_EQ(Os::FileSystem::Status::OP_OK, stat);
+
+      memcpy(this->sourceModel->buffOut, this->destModel->buffOut, this->sourceModel->size);
+      this->destModel->size = this->sourceModel->size;
+
+      // Delete the original file
+      this->sourceModel->mode = Os::Tester::FileModel::DOESNT_EXIST;
+      this->sourceModel->curPtr = 0;
+      this->sourceModel->size = 0;
+
+
+  }
+
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  Directory
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::Directory::Directory(const char* dirpath, bool offNominal) :
+        STest::Rule<Os::Tester>("Directory")
+  {
+    this->dirpath = dirpath;
+    this->offNominal = offNominal;
+  }
+
+
+  bool Os::Tester::Directory::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return true;
+  }
+
+  
+  void Os::Tester::Directory::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      printf("--> Rule: %s %s\n", this->name, this->dirpath);
+
+      Os::FileSystem::Status stat = Os::FileSystem::createDirectory(this->dirpath);
+
+      if (this->offNominal)
+      {
+        ASSERT_EQ(Os::FileSystem::Status::NO_PERMISSION, stat);
+      } else {
+        ASSERT_EQ(Os::FileSystem::Status::OP_OK, stat);
+      }
+
+      stat = Os::FileSystem::removeDirectory(this->dirpath);
+
+      if (this->offNominal)
+      {
+        ASSERT_EQ(Os::FileSystem::Status::NO_PERMISSION, stat);
+      } else {
+        ASSERT_EQ(Os::FileSystem::Status::OP_OK, stat);
+      }
+
+  }
+
 
