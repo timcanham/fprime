@@ -108,8 +108,8 @@ namespace Os {
     OpenRead openRead(File1);
     OpenFile openFile(File1);
     OpenFile openFile2(File2);
-    WriteData writeDataSmallChunk(File1, FILE_SIZE/4, 0xFF);
-    WriteData writeDataSmallChunk2(File2, FILE_SIZE/4, 0xFF);
+    WriteData writeDataSmallChunk(File1, FILE_SIZE/4);
+    WriteData writeDataSmallChunk2(File2, FILE_SIZE/4);
     CheckFileSize checkFileSize(File1);
     CheckFileSize checkFileSize2(File2);
     CloseFile closeFile(File1);
@@ -154,8 +154,8 @@ namespace Os {
     OpenFile openFile(File1);
     OpenReadEarly openReadEarly(File1);
     OpenCreate openCreate(File1);
-    WriteData writeDataSmallChunk(File1, FILE_SIZE/4, 0xFF);
-    WriteData writeDataSmallChunk2(File2, FILE_SIZE/4, 0xFF);
+    WriteData writeDataSmallChunk(File1, FILE_SIZE/4);
+    WriteData writeDataSmallChunk2(File2, FILE_SIZE/4);
     CheckFileSize checkFileSize(File1);
     CloseFile closeFile(File1);
     CloseFile closeFile2(File2);
@@ -208,10 +208,10 @@ namespace Os {
     OpenFile openFile(File1);
     OpenFileNotExist openFileNotExist(CrcFile);
     CloseFile closeFile(File1);
-    WriteData writeDataSmallChunk(File1, FILE_SIZE/4, 0xFF);
-    WriteData writeDataMediumChunk(File1, FILE_SIZE/2, 0xFF);
-    WriteData writeDataLargeChunk(File1, 3*FILE_SIZE/4, 0xFF);
-    WriteData writeDataFullChunk(File1, FILE_SIZE, 0xFF);
+    WriteData writeDataSmallChunk(File1, FILE_SIZE/4);
+    WriteData writeDataMediumChunk(File1, FILE_SIZE/2);
+    WriteData writeDataLargeChunk(File1, 3*FILE_SIZE/4);
+    WriteData writeDataFullChunk(File1, FILE_SIZE);
     ReadData readDataSmallChunk(File1, FILE_SIZE/4);
     ReadData readDataMediumChunk(File1, FILE_SIZE/2);
     ReadData readDataLargeChunk(File1, 3*FILE_SIZE/4);
@@ -289,7 +289,7 @@ namespace Os {
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
     OpenFile openFile1(File1);
     CloseFile closeFile(File1);
-    WriteData writeData(File1, FILE_SIZE, 0xFF);
+    WriteData writeData(File1, FILE_SIZE);
     CheckFileSize checkFileSize(File1);
     OpenRead openRead(File1);
     ReadData readData(File1, FILE_SIZE/2);
@@ -333,9 +333,9 @@ namespace Os {
     OpenFile openFile1(File1);
     CloseFile closeFile1(File1);
     Listings listings(NumberBins, NumberFiles);
-    WriteData writeData1(File1, FILE_SIZE, 0xFF);
-    WriteData writeDataHalf(File1, FILE_SIZE/2, 0xFF);
-    WriteData writeDataQuater(File1, FILE_SIZE/4, 0xFF);
+    WriteData writeData1(File1, FILE_SIZE);
+    WriteData writeDataHalf(File1, FILE_SIZE/2);
+    WriteData writeDataQuater(File1, FILE_SIZE/4);
     ReadData readData(File1, FILE_SIZE);
     OpenRead openRead1(File1);
     ReadData readData1(File1, FILE_SIZE/2);
@@ -495,7 +495,7 @@ namespace Os {
     CloseFile closeFile(FileName);
     OpenRead openRead(FileName);
     Cleanup cleanup;
-    WriteData writeData(FileName, FILE_SIZE, 0xFF);
+    WriteData writeData(FileName, FILE_SIZE);
     ReadData readData(FileName, FILE_SIZE);
 
     // Run the Rules
@@ -529,8 +529,8 @@ namespace Os {
     OpenFile openFile(FileName);
     ResetFile resetFile(FileName);
     Cleanup cleanup;
-    WriteData writeData1(FileName, FILE_SIZE/2, 0x11);
-    WriteData writeData2(FileName, FILE_SIZE/2, 0x22);
+    WriteData writeData1(FileName, FILE_SIZE/2);
+    WriteData writeData2(FileName, FILE_SIZE/2);
     ReadData readData(FileName, FILE_SIZE);
     CloseFile closeFile(FileName);
     OpenRead openRead(FileName);
@@ -567,7 +567,7 @@ namespace Os {
     CloseFile closeFile(FileName);
     Cleanup cleanup;
     OpenRead openRead(FileName);
-    WriteData writeData(FileName, FILE_SIZE, 0xFF);
+    WriteData writeData(FileName, FILE_SIZE);
     ReadData readData(FileName, FILE_SIZE/2);
 
     // Run the Rules
@@ -640,7 +640,7 @@ namespace Os {
     OpenFile openFile(FileName);
     // ResetFile resetFile;
     Cleanup cleanup;
-    WriteData writeData(FileName, FILE_SIZE, 0xFF);
+    WriteData writeData(FileName, FILE_SIZE);
 
     // Run the Rules
     initFileSystem.apply(*this);

@@ -119,7 +119,7 @@
             // ----------------------------------------------------------------------
 
             //! Constructor
-            WriteData(const char *filename, NATIVE_INT_TYPE size, U8 value);
+            WriteData(const char *filename, NATIVE_INT_TYPE size);
 
             // ----------------------------------------------------------------------
             // Public member functions
@@ -136,7 +136,6 @@
             );
 
             NATIVE_INT_TYPE size;
-            U8 value;
             const char* filename;
             Os::Tester::FileModel *fileModel;
 

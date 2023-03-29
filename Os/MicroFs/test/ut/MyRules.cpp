@@ -140,11 +140,10 @@
   //
   // ------------------------------------------------------------------------------------------------------
   
-  Os::Tester::WriteData::WriteData(const char *filename, NATIVE_INT_TYPE size, U8 value) :
+  Os::Tester::WriteData::WriteData(const char *filename, NATIVE_INT_TYPE size) :
         STest::Rule<Os::Tester>("WriteData")
   {
     this->size = size;
-    this->value = value;
     this->filename = filename;
     
   }
