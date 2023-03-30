@@ -148,6 +148,7 @@ namespace Os {
     SeekNFile seekNFile50(File1, 50);
     SeekNFile seekNFile99(File1, 99);
     ResetFile resetFile(File1);
+    CheckFileSize CheckFileSize(File1);
 
     Cleanup cleanup;
 

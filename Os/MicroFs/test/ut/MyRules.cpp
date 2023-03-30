@@ -253,8 +253,7 @@
       // Check the returned data
       ASSERT_LE(fileModel->curPtr + retSize, Tester::FILE_SIZE);
 
-      // *************************** TBD UNCOMMENT THIS WHEN THE FIX IS MADE TO MICROFS ********************************
-      //ASSERT_EQ(0,memcmp(buffIn, this->fileModel->buffOut + this->fileModel->curPtr, retSize));
+      ASSERT_EQ(0,memcmp(buffIn, this->fileModel->buffOut + this->fileModel->curPtr, retSize));
 
       // Update the FileModel
       fileModel->curPtr += retSize;
@@ -963,11 +962,19 @@
       Os::File::Status stat = this->fileModel->fileDesc.seek(randSeek);
       ASSERT_EQ(Os::File::OP_OK, stat);
 
+      // Update the model
+      I32 oldSize = this->fileModel->size;
       this->fileModel->curPtr = randSeek;
       if (this->fileModel->curPtr > this->fileModel->size)
       {
         this->fileModel->size = this->fileModel->curPtr;
       }
+
+      // fill with zeros if seek went past old size
+      if (this->fileModel->size > oldSize) {
+        memset(&this->fileModel->buffOut[oldSize], 0, this->fileModel->size - oldSize);
+      }
+
       
       printf("--> Rule: %s %s %d\n", this->name, this->filename, randSeek);
 
@@ -1005,13 +1012,22 @@
       Os::File::Status stat = this->fileModel->fileDesc.seek(this->seek);
       ASSERT_EQ(Os::File::OP_OK, stat);
 
+      // Update the model
+      I32 oldSize = this->fileModel->size;
+
       this->fileModel->curPtr = this->seek;
       if (this->fileModel->curPtr > this->fileModel->size)
       {
         this->fileModel->size = this->fileModel->curPtr;
       }
       
+      // fill with zeros if seek went past old size
+      if (this->fileModel->size > oldSize) {
+        memset(&this->fileModel->buffOut[oldSize], 0, this->fileModel->size - oldSize);
+      }
+
       printf("--> Rule: %s %s %d\n", this->name, this->filename, this->seek);
+
 
   }
 

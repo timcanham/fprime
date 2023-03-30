@@ -279,6 +279,8 @@ File::Status File::seek(NATIVE_INT_TYPE offset, bool absolute) {
     MicroFsFileState* state = getFileStateFromIndex(this->m_fd - MICROFS_FD_OFFSET);
     FW_ASSERT(state);
 
+    FwNativeIntType oldSize = state->currSize; 
+
     // compute new operation location
     if (absolute) {
         // make sure not too far
@@ -298,7 +300,12 @@ File::Status File::seek(NATIVE_INT_TYPE offset, bool absolute) {
     if (state->loc > state->currSize) {
         state->currSize = state->loc;
     }
-    
+
+    // fill with zeros if seek went past old size
+    if (state->currSize > oldSize) {
+        memset(&state->data[oldSize],0,state->currSize-oldSize);
+    }
+
     return OP_OK;
 }
 
@@ -690,7 +697,8 @@ Status moveFile(const char* originPath, const char* destPath) {
     // move consists of copying source data/size to destination,
     // and then deleting source
 
-    // check sizes!
+    // check sizes to see if going from a bigger slot to a 
+    // smaller slot
 
     memcpy(destState->data,origState->data,origState->currSize);
     destState->currSize = origState->currSize;
