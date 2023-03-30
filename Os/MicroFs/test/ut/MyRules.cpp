@@ -140,10 +140,9 @@
   //
   // ------------------------------------------------------------------------------------------------------
   
-  Os::Tester::WriteData::WriteData(const char *filename, NATIVE_INT_TYPE size) :
+  Os::Tester::WriteData::WriteData(const char *filename) :
         STest::Rule<Os::Tester>("WriteData")
   {
-    this->size = size;
     this->filename = filename;
     
   }
@@ -166,16 +165,20 @@
   {
     
     NATIVE_UINT_TYPE fillSize;
+
+    // Randomize how many bytes are written to the file
+    NATIVE_INT_TYPE randSize = rand() % Tester::FILE_SIZE + 1;
     
-    if ((fileModel->curPtr + this->size) > Tester::FILE_SIZE) {
+    if ((fileModel->curPtr + randSize) > Tester::FILE_SIZE) {
       fillSize = Tester::FILE_SIZE - fileModel->curPtr;
     } else {
-      fillSize = this->size;
+      fillSize = randSize;
     }
 
+    printf("--> Rule: %s %s %d bytes\n", this->name, this->filename, fillSize);
+
+
     // Fill the memory buffer with random numbers between 0 and 0xFF inclusive
-    // Seed the random number generate
-    //srand(time(NULL));
 
     NATIVE_INT_TYPE offset = fileModel->curPtr;
     for (U32 i=0; i < fillSize; i++)
@@ -184,7 +187,7 @@
       this->fileModel->buffOut[offset + i] = rand() % 256;
     }
     
-    NATIVE_INT_TYPE retSize = this->size;
+    NATIVE_INT_TYPE retSize = randSize;
     Os::File::Status stat = fileModel->fileDesc.write(this->fileModel->buffOut + this->fileModel->curPtr, retSize);
     ASSERT_EQ(stat, Os::File::OP_OK);
     ASSERT_LE(this->fileModel->curPtr + retSize, Tester::FILE_SIZE);
@@ -209,10 +212,9 @@
   //
   // ------------------------------------------------------------------------------------------------------
   
-  Os::Tester::ReadData::ReadData(const char *filename, NATIVE_INT_TYPE size) :
+  Os::Tester::ReadData::ReadData(const char *filename) :
         STest::Rule<Os::Tester>("ReadData")
   {
-    this->size = size;
     this->filename = filename;
   }
 
@@ -234,11 +236,14 @@
         ) 
   {
 
+      // Randomize how much data is read
+      NATIVE_INT_TYPE randSize = rand() % Tester::FILE_SIZE + 1;
+
       BYTE buffIn[state.testCfg.bins[0].fileSize];
       NATIVE_INT_TYPE bufferSize = sizeof(buffIn);
       memset(buffIn,0xA5,sizeof(buffIn));
-      ASSERT_LE(this->size, sizeof(buffIn));
-      NATIVE_INT_TYPE retSize = this->size;
+      ASSERT_LE(randSize, sizeof(buffIn));
+      NATIVE_INT_TYPE retSize = randSize;
       Os::File::Status stat = this->fileModel->fileDesc.read(buffIn, retSize);
 
       ASSERT_EQ(stat, Os::File::OP_OK);
@@ -252,7 +257,7 @@
       // Update the FileModel
       fileModel->curPtr += retSize;
 
-      printf("--> Rule: %s %d bytes\n", this->name, retSize);
+      printf("--> Rule: %s %s %d bytes\n", this->name, this->filename, retSize);
 
   }
 

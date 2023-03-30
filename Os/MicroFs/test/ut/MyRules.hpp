@@ -119,7 +119,7 @@
             // ----------------------------------------------------------------------
 
             //! Constructor
-            WriteData(const char *filename, NATIVE_INT_TYPE size);
+            WriteData(const char *filename);
 
             // ----------------------------------------------------------------------
             // Public member functions
@@ -135,7 +135,6 @@
                 Os::Tester& state //!< The test state
             );
 
-            NATIVE_INT_TYPE size;
             const char* filename;
             Os::Tester::FileModel *fileModel;
 
@@ -157,7 +156,7 @@
             // ----------------------------------------------------------------------
 
             //! Constructor
-            ReadData(const char *filename, NATIVE_INT_TYPE size);
+            ReadData(const char *filename);
 
             // ----------------------------------------------------------------------
             // Public member functions
@@ -173,7 +172,6 @@
                 Os::Tester& state //!< The test state
             );
 
-            NATIVE_INT_TYPE size;
             const char *filename;
             Os::Tester::FileModel *fileModel;
 

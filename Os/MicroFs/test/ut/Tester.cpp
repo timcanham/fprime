@@ -16,6 +16,7 @@ namespace Os {
   Tester ::
     Tester()
   {
+    srand(time(NULL));
   }
 
   Tester ::
@@ -108,8 +109,7 @@ namespace Os {
     OpenRead openRead(File1);
     OpenFile openFile(File1);
     OpenFile openFile2(File2);
-    WriteData writeDataSmallChunk(File1, FILE_SIZE/4);
-    WriteData writeDataSmallChunk2(File2, FILE_SIZE/4);
+    WriteData writeData(File1);
     CheckFileSize checkFileSize(File1);
     CheckFileSize checkFileSize2(File2);
     CloseFile closeFile(File1);
@@ -121,7 +121,7 @@ namespace Os {
     // Run the Rules
     initFileSystem.apply(*this);
     openFile.apply(*this);
-    writeDataSmallChunk.apply(*this);
+    writeData.apply(*this);
     checkFileSize.apply(*this);
     openFile2.apply(*this);
     checkFileSize2.apply(*this);
@@ -154,8 +154,7 @@ namespace Os {
     OpenFile openFile(File1);
     OpenReadEarly openReadEarly(File1);
     OpenCreate openCreate(File1);
-    WriteData writeDataSmallChunk(File1, FILE_SIZE/4);
-    WriteData writeDataSmallChunk2(File2, FILE_SIZE/4);
+    WriteData writeData(File1);
     CheckFileSize checkFileSize(File1);
     CloseFile closeFile(File1);
     CloseFile closeFile2(File2);
@@ -175,11 +174,11 @@ namespace Os {
     openReadEarly.apply(*this);
     openFile.apply(*this);
     isFileOpen.apply(*this);
-    writeDataSmallChunk.apply(*this);
+    writeData.apply(*this);
     removeBusyFile.apply(*this);
     closeFile.apply(*this);
     openAppend.apply(*this);
-    writeDataSmallChunk.apply(*this);
+    writeData.apply(*this);
     checkFileSize.apply(*this);
     closeFile.apply(*this);
     removeFile.apply(*this);
@@ -208,20 +207,12 @@ namespace Os {
     OpenFile openFile(File1);
     OpenFileNotExist openFileNotExist(CrcFile);
     CloseFile closeFile(File1);
-    WriteData writeDataSmallChunk(File1, FILE_SIZE/4);
-    WriteData writeDataMediumChunk(File1, FILE_SIZE/2);
-    WriteData writeDataLargeChunk(File1, 3*FILE_SIZE/4);
-    WriteData writeDataFullChunk(File1, FILE_SIZE);
-    ReadData readDataSmallChunk(File1, FILE_SIZE/4);
-    ReadData readDataMediumChunk(File1, FILE_SIZE/2);
-    ReadData readDataLargeChunk(File1, 3*FILE_SIZE/4);
-    ReadData readDataFullChunk(File1, FILE_SIZE);
+    WriteData writeData(File1);
+    ReadData readData(File1);
 
     CheckFileSize checkFileSize(File1);
 
     OpenRead openRead(File1);
-    ReadData readData(File1, FILE_SIZE/2);
-    ReadData readData1(File1, FILE_SIZE);
     Cleanup cleanup;
     ResetFile resetFile(File1);
 
@@ -246,14 +237,8 @@ namespace Os {
                                      &openFileNotExist,
                                      &closeFile,
                                      &checkFileSize,
-                                     &writeDataSmallChunk,
-                                     &writeDataMediumChunk, 
-                                     &writeDataLargeChunk,
-                                     &writeDataFullChunk,
-                                     &readDataSmallChunk,
-                                     &readDataMediumChunk, 
-                                     &readDataLargeChunk,
-                                     &readDataFullChunk,
+                                     &writeData,
+                                     &readData,
                                      &resetFile
                                   };
     STest::RandomScenario<Tester> randomScenario(
@@ -289,10 +274,9 @@ namespace Os {
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
     OpenFile openFile1(File1);
     CloseFile closeFile(File1);
-    WriteData writeData(File1, FILE_SIZE);
+    WriteData writeData(File1);
     CheckFileSize checkFileSize(File1);
     OpenRead openRead(File1);
-    ReadData readData(File1, FILE_SIZE/2);
     Cleanup cleanup;
 
     // Run the Rules
@@ -333,12 +317,8 @@ namespace Os {
     OpenFile openFile1(File1);
     CloseFile closeFile1(File1);
     Listings listings(NumberBins, NumberFiles);
-    WriteData writeData1(File1, FILE_SIZE);
-    WriteData writeDataHalf(File1, FILE_SIZE/2);
-    WriteData writeDataQuater(File1, FILE_SIZE/4);
-    ReadData readData(File1, FILE_SIZE);
+    WriteData writeData(File1);
     OpenRead openRead1(File1);
-    ReadData readData1(File1, FILE_SIZE/2);
     ResetFile resetFile1(File1);
     CheckFileSize checkFileSize(File1);
     CheckFileSize checkFileSizeZero(File1);
@@ -356,7 +336,7 @@ namespace Os {
     // Part 1:  Open a new file and write max bytes
     printf("Part 1\n");
     openFile1.apply(*this);
-    writeData1.apply(*this);
+    writeData.apply(*this);
     checkFileSize.apply(*this);
     closeFile1.apply(*this);
 
@@ -364,7 +344,7 @@ namespace Os {
     // check that the size does not exceed tha max
     printf("Part 2\n");
     openFile1.apply(*this);
-    writeData1.apply(*this);
+    writeData.apply(*this);
     checkFileSize.apply(*this);
     closeFile1.apply(*this);
 
@@ -373,9 +353,9 @@ namespace Os {
     // other half, check that the size still equals the max.
     printf("Part 3\n");
     openFile1.apply(*this);
-    writeDataHalf.apply(*this);
+    writeData.apply(*this);
     checkFileSize.apply(*this);
-    writeDataHalf.apply(*this);
+    writeData.apply(*this);
     checkFileSize.apply(*this);
     closeFile1.apply(*this);
 
@@ -386,7 +366,7 @@ namespace Os {
     initFileSystem.apply(*this);
     openFile1.apply(*this);
     checkFileSizeZero.apply(*this);
-    writeDataHalf.apply(*this);
+    writeData.apply(*this);
     checkFileSizeHalf.apply(*this);
     closeFile1.apply(*this);
 
@@ -398,13 +378,13 @@ namespace Os {
     printf("Part 5\n");
     openFile1.apply(*this);
     checkFileSizeHalf.apply(*this);
-    writeDataQuater.apply(*this);
+    writeData.apply(*this);
     checkFileSizeHalf.apply(*this);
-    writeDataQuater.apply(*this);
+    writeData.apply(*this);
     checkFileSizeHalf.apply(*this);
-    writeDataQuater.apply(*this);
+    writeData.apply(*this);
     checkFileSizeThreeQuaters.apply(*this);
-    writeDataQuater.apply(*this);
+    writeData.apply(*this);
     checkFileSize.apply(*this);
     closeFile1.apply(*this);
 
@@ -495,8 +475,8 @@ namespace Os {
     CloseFile closeFile(FileName);
     OpenRead openRead(FileName);
     Cleanup cleanup;
-    WriteData writeData(FileName, FILE_SIZE);
-    ReadData readData(FileName, FILE_SIZE);
+    WriteData writeData(FileName);
+    ReadData readData(FileName);
 
     // Run the Rules
     initFileSystem.apply(*this);
@@ -529,17 +509,16 @@ namespace Os {
     OpenFile openFile(FileName);
     ResetFile resetFile(FileName);
     Cleanup cleanup;
-    WriteData writeData1(FileName, FILE_SIZE/2);
-    WriteData writeData2(FileName, FILE_SIZE/2);
-    ReadData readData(FileName, FILE_SIZE);
+    WriteData writeData(FileName);
+    ReadData readData(FileName);
     CloseFile closeFile(FileName);
     OpenRead openRead(FileName);
 
     // Run the Rules
     initFileSystem.apply(*this);
     openFile.apply(*this);
-    writeData1.apply(*this);
-    writeData2.apply(*this);
+    writeData.apply(*this);
+    writeData.apply(*this);
     closeFile.apply(*this);
     openRead.apply(*this);
     resetFile.apply(*this);
@@ -567,8 +546,8 @@ namespace Os {
     CloseFile closeFile(FileName);
     Cleanup cleanup;
     OpenRead openRead(FileName);
-    WriteData writeData(FileName, FILE_SIZE);
-    ReadData readData(FileName, FILE_SIZE/2);
+    WriteData writeData(FileName);
+    ReadData readData(FileName);
 
     // Run the Rules
     initFileSystem.apply(*this);
@@ -640,7 +619,7 @@ namespace Os {
     OpenFile openFile(FileName);
     // ResetFile resetFile;
     Cleanup cleanup;
-    WriteData writeData(FileName, FILE_SIZE);
+    WriteData writeData(FileName);
 
     // Run the Rules
     initFileSystem.apply(*this);
