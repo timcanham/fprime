@@ -334,9 +334,9 @@ namespace Os {
     CloseFile closeFile1(File1);
     Listings listings(NumberBins, NumberFiles);
 
-    WriteData writeData1(File1, FILE_SIZE, 0xFF);
-    WriteData writeDataHalf(File1, FILE_SIZE/2, 0xFF);
-    WriteData writeDataQuarter(File1, FILE_SIZE/4, 0xFF);
+    WriteData writeData1(File1, FILE_SIZE);
+    WriteData writeDataHalf(File1, FILE_SIZE/2);
+    WriteData writeDataQuarter(File1, FILE_SIZE/4);
     ReadData readData(File1, FILE_SIZE);
     OpenRead openRead1(File1);
     ReadData readData1(File1, FILE_SIZE/2);
@@ -344,8 +344,8 @@ namespace Os {
     CheckFileSize checkFileSize(File1);
     CheckFileSize checkFileSizeZero(File1);
     CheckFileSize checkFileSizeHalf(File1);
-    CheckFileSize checkFileSizeQuater(File1);
-    CheckFileSize checkFileSizeThreeQuaters(File1);
+    CheckFileSize checkFileSizeQuarter(File1);
+    CheckFileSize checkFileSizeThreeQuarters(File1);
 
     Cleanup cleanup;
 
@@ -404,14 +404,12 @@ namespace Os {
     writeDataQuarter.apply(*this);
     checkFileSizeHalf.apply(*this);
     writeDataQuarter.apply(*this);
-    checkFileSizeThreeQuaters.apply(*this);
+    checkFileSizeThreeQuarters.apply(*this);
     writeDataQuarter.apply(*this);
     checkFileSize.apply(*this);
     closeFile1.apply(*this);
 
     // Part
-
-
     cleanup.apply(*this);
   }
 
