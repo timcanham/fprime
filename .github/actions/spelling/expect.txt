@@ -309,6 +309,7 @@ DENABLE
 deployables
 DEPRECATEDLIST
 deps
+destfile
 deque
 deregistration
 deser
