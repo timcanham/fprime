@@ -302,7 +302,7 @@ File::Status File::seek(NATIVE_INT_TYPE offset, bool absolute) {
     }
 
     // fill with zeros if seek went past old size
-    if (state->currSize > oldSize)
+    if (state->currSize > oldSize) {
         memset(&state->data[oldSize],0,state->currSize-oldSize);
     }
 
