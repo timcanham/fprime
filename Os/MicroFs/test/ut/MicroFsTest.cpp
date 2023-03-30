@@ -9,7 +9,7 @@
 
 #define FULL_TEST
 #define NUKE_TEST
-//#define MOVE_TEST
+#define MOVE_TEST
 #define ODD_TEST
 
 

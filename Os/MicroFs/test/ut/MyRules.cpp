@@ -849,8 +849,7 @@
       this->sourceModel = const_cast<Os::Tester&>(state).getFileModel(this->sourcefile);
       this->destModel = const_cast<Os::Tester&>(state).getFileModel(this->destfile);
 
-      return ((this->sourceModel->mode == Os::Tester::FileModel::CLOSED) &&
-              (this->destModel->mode == Os::Tester::FileModel::CLOSED));
+      return (this->sourceModel->mode == Os::Tester::FileModel::CLOSED);
 
   }
 

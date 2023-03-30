@@ -100,13 +100,11 @@ namespace Os {
 
     const char* File1 = "/bin0/file0";
     const char* File2 = "/bin0/file1";
-    const char* CrcFile = "/bin0/file0.crc32";
 
     clearFileBuffer();
 
     // Instantiate the Rules
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
-    OpenRead openRead(File1);
     OpenFile openFile(File1);
     OpenFile openFile2(File2);
     WriteData writeData(File1);
@@ -123,10 +121,8 @@ namespace Os {
     openFile.apply(*this);
     writeData.apply(*this);
     checkFileSize.apply(*this);
-    openFile2.apply(*this);
     checkFileSize2.apply(*this);
     closeFile.apply(*this);
-    closeFile2.apply(*this);
     moveFile.apply(*this);
     checkFileSize.apply(*this);
     checkFileSize2.apply(*this);
@@ -321,10 +317,6 @@ namespace Os {
     OpenRead openRead1(File1);
     ResetFile resetFile1(File1);
     CheckFileSize checkFileSize(File1);
-    CheckFileSize checkFileSizeZero(File1);
-    CheckFileSize checkFileSizeHalf(File1);
-    CheckFileSize checkFileSizeQuater(File1);
-    CheckFileSize checkFileSizeThreeQuaters(File1);
 
     Cleanup cleanup;
 
@@ -365,9 +357,9 @@ namespace Os {
     cleanup.apply(*this);
     initFileSystem.apply(*this);
     openFile1.apply(*this);
-    checkFileSizeZero.apply(*this);
+    checkFileSize.apply(*this);
     writeData.apply(*this);
-    checkFileSizeHalf.apply(*this);
+    checkFileSize.apply(*this);
     closeFile1.apply(*this);
 
     // Part 5:  Open the file again.  Check size is 1/2
@@ -377,13 +369,13 @@ namespace Os {
     // Write a 1/4 again and check file is full
     printf("Part 5\n");
     openFile1.apply(*this);
-    checkFileSizeHalf.apply(*this);
+    checkFileSize.apply(*this);
     writeData.apply(*this);
-    checkFileSizeHalf.apply(*this);
+    checkFileSize.apply(*this);
     writeData.apply(*this);
-    checkFileSizeHalf.apply(*this);
+    checkFileSize.apply(*this);
     writeData.apply(*this);
-    checkFileSizeThreeQuaters.apply(*this);
+    checkFileSize.apply(*this);
     writeData.apply(*this);
     checkFileSize.apply(*this);
     closeFile1.apply(*this);
