@@ -44,6 +44,96 @@ namespace Os {
   // ----------------------------------------------------------------------
 
   // ----------------------------------------------------------------------
+  // DirectoryTest
+  // ----------------------------------------------------------------------
+  void Tester ::
+    DirectoryTest()
+  {
+    const U16 NumberBins = MAX_BINS;
+    const U16 NumberFiles = MAX_FILES_PER_BIN;
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    Cleanup cleanup;
+
+    Directory* directories[MAX_BINS];
+    Directory offNominalDir1("/bin10", true);
+    Directory offNominalDir2("/bit0", true);
+    Directory offNominalDir3("/bin", true);
+    Directory offNominalDir4("bin0", true);
+    char dirName[MAX_BINS][20];
+
+    U16 binIndex =  0;
+    for (U16 bin=0; bin < MAX_BINS; bin++)
+    {
+        snprintf(dirName[bin], 20, "/bin%d", bin);
+    }
+    
+    // Run the Rules
+    initFileSystem.apply(*this);
+
+    for (U16 i = 0; i < MAX_BINS; i++)
+    {
+      directories[i] = new Directory(dirName[i], false);
+      directories[i]->apply(*this);
+    }
+
+    offNominalDir1.apply(*this);
+    offNominalDir2.apply(*this);
+    offNominalDir3.apply(*this);
+    offNominalDir4.apply(*this);
+
+    cleanup.apply(*this);
+  }
+
+  // ----------------------------------------------------------------------
+  // MoveTest
+  // ----------------------------------------------------------------------
+  void Tester ::
+    MoveTest()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file0";
+    const char* File2 = "/bin0/file1";
+    const char* CrcFile = "/bin0/file0.crc32";
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenRead openRead(File1);
+    OpenFile openFile(File1);
+    OpenFile openFile2(File2);
+    WriteData writeDataSmallChunk(File1, FILE_SIZE/4);
+    WriteData writeDataSmallChunk2(File2, FILE_SIZE/4);
+    CheckFileSize checkFileSize(File1);
+    CheckFileSize checkFileSize2(File2);
+    CloseFile closeFile(File1);
+    CloseFile closeFile2(File2);
+    Cleanup cleanup;
+    MoveFile moveFile(File1, File2);
+    
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openFile.apply(*this);
+    writeDataSmallChunk.apply(*this);
+    checkFileSize.apply(*this);
+    openFile2.apply(*this);
+    checkFileSize2.apply(*this);
+    closeFile.apply(*this);
+    closeFile2.apply(*this);
+    moveFile.apply(*this);
+    checkFileSize.apply(*this);
+    checkFileSize2.apply(*this);
+
+    cleanup.apply(*this);
+  }
+  // ----------------------------------------------------------------------
   // OddTests
   // ----------------------------------------------------------------------
   void Tester ::
@@ -64,11 +154,19 @@ namespace Os {
     OpenFile openFile(File1);
     OpenReadEarly openReadEarly(File1);
     OpenCreate openCreate(File1);
-    WriteData writeDataSmallChunk(File1, FILE_SIZE/4, 0xFF);
+    WriteData writeDataSmallChunk(File1, FILE_SIZE/4);
+    WriteData writeDataSmallChunk2(File2, FILE_SIZE/4);
     CheckFileSize checkFileSize(File1);
     CloseFile closeFile(File1);
+    CloseFile closeFile2(File2);
     OpenAppend openAppend(File1);
     RemoveFile removeFile(File1);
+    RemoveBusyFile removeBusyFile(File1);
+    IsFileOpen isFileOpen(File1);
+    OpenFile openFile2(File2);
+    MoveFile moveFile(File1, File2);
+    CheckFileSize checkFileSize2(File2);
+    
 
     Cleanup cleanup;
 
@@ -76,15 +174,16 @@ namespace Os {
     initFileSystem.apply(*this);
     openReadEarly.apply(*this);
     openFile.apply(*this);
+    isFileOpen.apply(*this);
     writeDataSmallChunk.apply(*this);
+    removeBusyFile.apply(*this);
     closeFile.apply(*this);
     openAppend.apply(*this);
     writeDataSmallChunk.apply(*this);
     checkFileSize.apply(*this);
     closeFile.apply(*this);
     removeFile.apply(*this);
-    openFile.apply(*this);
-  
+
     cleanup.apply(*this);
   }
 
@@ -109,10 +208,10 @@ namespace Os {
     OpenFile openFile(File1);
     OpenFileNotExist openFileNotExist(CrcFile);
     CloseFile closeFile(File1);
-    WriteData writeDataSmallChunk(File1, FILE_SIZE/4, 0xFF);
-    WriteData writeDataMediumChunk(File1, FILE_SIZE/2, 0xFF);
-    WriteData writeDataLargeChunk(File1, 3*FILE_SIZE/4, 0xFF);
-    WriteData writeDataFullChunk(File1, FILE_SIZE, 0xFF);
+    WriteData writeDataSmallChunk(File1, FILE_SIZE/4);
+    WriteData writeDataMediumChunk(File1, FILE_SIZE/2);
+    WriteData writeDataLargeChunk(File1, 3*FILE_SIZE/4);
+    WriteData writeDataFullChunk(File1, FILE_SIZE);
     ReadData readDataSmallChunk(File1, FILE_SIZE/4);
     ReadData readDataMediumChunk(File1, FILE_SIZE/2);
     ReadData readDataLargeChunk(File1, 3*FILE_SIZE/4);
@@ -129,6 +228,8 @@ namespace Os {
     OpenCreate openCreate(File1);
     OpenAppend openAppend(File1);
     RemoveFile removeFile(File1);
+    RemoveBusyFile removeBusyFile(File1);
+    IsFileOpen isFileOpen(File1);
 
 
     // Run the Rules
@@ -137,9 +238,11 @@ namespace Os {
     // Run the Rules randomly
     STest::Rule<Tester>* rules[] = { 
                                      &openFile,
+                                     &isFileOpen,
                                      &openCreate,
                                      &openAppend,
                                      &removeFile,
+                                     &removeBusyFile,
                                      &openFileNotExist,
                                      &closeFile,
                                      &checkFileSize,
@@ -161,10 +264,10 @@ namespace Os {
     STest::BoundedScenario<Tester> boundedScenario(
         "BoundedScenario",
         randomScenario,
-        1000
+        2000
     );
     const U32 numSteps = boundedScenario.run(*this);
-    ASSERT_EQ(1000, numSteps);
+    ASSERT_EQ(2000, numSteps);
 
     cleanup.apply(*this);
   }
@@ -186,7 +289,7 @@ namespace Os {
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
     OpenFile openFile1(File1);
     CloseFile closeFile(File1);
-    WriteData writeData(File1, FILE_SIZE, 0xFF);
+    WriteData writeData(File1, FILE_SIZE);
     CheckFileSize checkFileSize(File1);
     OpenRead openRead(File1);
     ReadData readData(File1, FILE_SIZE/2);
@@ -230,6 +333,7 @@ namespace Os {
     OpenFile openFile1(File1);
     CloseFile closeFile1(File1);
     Listings listings(NumberBins, NumberFiles);
+
     WriteData writeData1(File1, FILE_SIZE, 0xFF);
     WriteData writeDataHalf(File1, FILE_SIZE/2, 0xFF);
     WriteData writeDataQuarter(File1, FILE_SIZE/4, 0xFF);
@@ -325,21 +429,13 @@ namespace Os {
 
     // Instantiate the Rules
     OpenFile* openFile[TotalFiles];
+    CloseFile* closeFile[TotalFiles];
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
     Cleanup cleanup;
 
     char fileName[TotalFiles][20];
 
-    U16 fileIndex =  0;
-    for (U16 bin=0; bin < NumberBins; bin++)
-    {
-      for (U16 file=0; file < NumberFiles; file++)
-      {
-        snprintf(fileName[fileIndex], 20, "/bin%d/file%d", bin, file);
-        fileIndex++;
-      }
-    }
-    
+    getFileNames(fileName, MAX_BINS, MAX_FILES_PER_BIN);
 
     // Run the Rules
     initFileSystem.apply(*this);
@@ -348,6 +444,12 @@ namespace Os {
     {
       openFile[i] = new OpenFile(fileName[i]);
       openFile[i]->apply(*this);
+    }
+
+    for (U16 i = 0; i < TotalFiles; i++)
+    {
+      closeFile[i] = new CloseFile(fileName[i]);
+      closeFile[i]->apply(*this);
     }
 
     cleanup.apply(*this);
@@ -394,7 +496,7 @@ namespace Os {
     CloseFile closeFile(FileName);
     OpenRead openRead(FileName);
     Cleanup cleanup;
-    WriteData writeData(FileName, FILE_SIZE, 0xFF);
+    WriteData writeData(FileName, FILE_SIZE);
     ReadData readData(FileName, FILE_SIZE);
 
     // Run the Rules
@@ -428,8 +530,8 @@ namespace Os {
     OpenFile openFile(FileName);
     ResetFile resetFile(FileName);
     Cleanup cleanup;
-    WriteData writeData1(FileName, FILE_SIZE/2, 0x11);
-    WriteData writeData2(FileName, FILE_SIZE/2, 0x22);
+    WriteData writeData1(FileName, FILE_SIZE/2);
+    WriteData writeData2(FileName, FILE_SIZE/2);
     ReadData readData(FileName, FILE_SIZE);
     CloseFile closeFile(FileName);
     OpenRead openRead(FileName);
@@ -466,7 +568,7 @@ namespace Os {
     CloseFile closeFile(FileName);
     Cleanup cleanup;
     OpenRead openRead(FileName);
-    WriteData writeData(FileName, FILE_SIZE, 0xFF);
+    WriteData writeData(FileName, FILE_SIZE);
     ReadData readData(FileName, FILE_SIZE/2);
 
     // Run the Rules
@@ -484,39 +586,37 @@ namespace Os {
   }
 
   // ----------------------------------------------------------------------
-  // OneFileReadDirectory
+  // ListTest
   // ----------------------------------------------------------------------
   void Tester ::
-    OneFileReadDirectory()
+    ListTest()
   {
     clearFileBuffer();
 
     // Instantiate the Rules
-    const U16 NumberBins = 2;
-    const U16 NumberFiles = 2;
-    const char* File1 = "/bin0/file0";
-    const char* File2 = "/bin0/file1";
-    const char* File3 = "/bin1/file0";
-    const char* File4 = "/bin1/file1";
+    const U16 NumberBins = MAX_BINS;
+    const U16 NumberFiles = MAX_FILES_PER_BIN;
+    const U16 TotalFiles = MAX_BINS * MAX_FILES_PER_BIN;
 
+    OpenFile* openFile[TotalFiles];
+
+    char fileName[TotalFiles][20];
+    getFileNames(fileName, MAX_BINS, MAX_FILES_PER_BIN);
+    
+    // Instantiate the Rules
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
-    OpenFile openFile1(File1);
-    OpenFile openFile2(File2);
-    OpenFile openFile3(File3);
-    OpenFile openFile4(File4);
     Cleanup cleanup;
-    WriteData writeData(File1, FILE_SIZE, 0xFF);
-    CloseFile closeFile(File1);
     Listings listings(NumberBins, NumberFiles);
 
     // Run the Rules
     initFileSystem.apply(*this);
-    openFile1.apply(*this);
-    openFile2.apply(*this);
-    openFile3.apply(*this);
-    openFile4.apply(*this);
-    //writeData.apply(*this);
-    //closeFile.apply(*this);
+
+    for (U16 i = 0; i < TotalFiles; i++)
+    {
+      openFile[i] = new OpenFile(fileName[i]);
+      openFile[i]->apply(*this);
+    }
+
     listings.apply(*this);
 
     cleanup.apply(*this);
@@ -541,7 +641,7 @@ namespace Os {
     OpenFile openFile(FileName);
     // ResetFile resetFile;
     Cleanup cleanup;
-    WriteData writeData(FileName, FILE_SIZE, 0xFF);
+    WriteData writeData(FileName, FILE_SIZE);
 
     // Run the Rules
     initFileSystem.apply(*this);
@@ -593,6 +693,17 @@ namespace Os {
       FW_ASSERT(fileIndex < MAX_TOTAL_FILES && fileIndex >= 0, fileIndex);
 
       return &(this->fileModels[fileIndex]);
+  }
+
+
+  void Tester::getFileNames(char fileNames[][20], U16 numBins, U16 numFiles) {
+    int count = 0;
+    for (int i = 0; i < numBins; i++) {
+        for (int j = 0; j < numFiles; j++) {
+            sprintf(fileNames[count], "/bin%d/file%d", i, j); // format the string
+            count++;
+        }
+    }
   }
 
 

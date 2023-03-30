@@ -528,7 +528,7 @@ Status createDirectory(const char* path) {
     FW_ASSERT(MicroFsMem);
     MicroFsConfig *cfg = static_cast<MicroFsConfig*>(MicroFsMem);
 
-    if ((binIndex > 0) and (binIndex < cfg->numBins)) {
+    if ((binIndex >= 0) and (binIndex < cfg->numBins)) {
         return OP_OK;
     } else {
         return NO_PERMISSION;
@@ -669,7 +669,7 @@ Status moveFile(const char* originPath, const char* destPath) {
 
     // get file state
     FwNativeIntType destIndex = getFileStateIndex(destPath);
-    if (-1 == origIndex) {
+    if (-1 == destIndex) {
         return INVALID_PATH;
     }
 
@@ -677,13 +677,13 @@ Status moveFile(const char* originPath, const char* destPath) {
     FW_ASSERT(destState);
 
     // make sure source exists
-    if (origState->currSize != -1) {
+    if (origState->currSize == -1) {
         return INVALID_PATH;
     }
 
     // make sure neither is open so we don't corrupt operations
     // in progress
-    if ((destState->loc != -1) or (origState->loc != 1)) {
+    if ((destState->loc != -1) or (origState->loc != -1)) {
         return BUSY;
     }
 
