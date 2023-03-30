@@ -692,8 +692,11 @@ Status moveFile(const char* originPath, const char* destPath) {
 
     // check sizes!
 
-    memcpy(origState->data,destState->data,origState->currSize);
+    memcpy(destState->data,origState->data,origState->currSize);
     destState->currSize = origState->currSize;
+    // delete original
+    origState->currSize = -1;
+    origState->loc = -1;
 
     return OP_OK;
 

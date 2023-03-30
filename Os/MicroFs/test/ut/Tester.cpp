@@ -232,7 +232,7 @@ namespace Os {
     Listings listings(NumberBins, NumberFiles);
     WriteData writeData1(File1, FILE_SIZE, 0xFF);
     WriteData writeDataHalf(File1, FILE_SIZE/2, 0xFF);
-    WriteData writeDataQuater(File1, FILE_SIZE/4, 0xFF);
+    WriteData writeDataQuarter(File1, FILE_SIZE/4, 0xFF);
     ReadData readData(File1, FILE_SIZE);
     OpenRead openRead1(File1);
     ReadData readData1(File1, FILE_SIZE/2);
@@ -295,13 +295,13 @@ namespace Os {
     printf("Part 5\n");
     openFile1.apply(*this);
     checkFileSizeHalf.apply(*this);
-    writeDataQuater.apply(*this);
+    writeDataQuarter.apply(*this);
     checkFileSizeHalf.apply(*this);
-    writeDataQuater.apply(*this);
+    writeDataQuarter.apply(*this);
     checkFileSizeHalf.apply(*this);
-    writeDataQuater.apply(*this);
+    writeDataQuarter.apply(*this);
     checkFileSizeThreeQuaters.apply(*this);
-    writeDataQuater.apply(*this);
+    writeDataQuarter.apply(*this);
     checkFileSize.apply(*this);
     closeFile1.apply(*this);
 
