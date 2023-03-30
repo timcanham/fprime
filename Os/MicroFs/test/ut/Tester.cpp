@@ -43,6 +43,134 @@ namespace Os {
   // ----------------------------------------------------------------------
   // Tests
   // ----------------------------------------------------------------------
+  
+  // ----------------------------------------------------------------------
+  // CrcTest
+  // ----------------------------------------------------------------------
+  void Tester ::
+      CrcTest()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file0";
+    const char* File2 = "/bin0/file1";
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenFile openFile(File1);
+    WriteData writeData(File1);
+    CheckFileSize checkFileSize(File1);
+    CalcCRC32 calcCRC32(File1);
+    ResetFile resetFile(File1);
+    ReadData readData(File1);
+    Cleanup cleanup;
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openFile.apply(*this);
+    writeData.apply(*this);
+    checkFileSize.apply(*this);
+    calcCRC32.apply(*this);
+    checkFileSize.apply(*this);
+    resetFile.apply(*this);
+    readData.apply(*this);
+    readData.apply(*this);
+    readData.apply(*this);
+    readData.apply(*this);
+    readData.apply(*this);
+    readData.apply(*this);
+    readData.apply(*this);
+    cleanup.apply(*this);
+
+  }
+
+  // ----------------------------------------------------------------------
+  // BulkTest
+  // ----------------------------------------------------------------------
+  void Tester ::
+      BulkTest()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file0";
+    const char* File2 = "/bin0/file1";
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    BulkWrite bulkWrite(File1);
+    OpenFile openFile(File1);
+    ReadData readData(File1);
+    ResetFile resetFile(File1);
+    Cleanup cleanup;
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openFile.apply(*this);
+    bulkWrite.apply(*this);
+    resetFile.apply(*this);
+    readData.apply(*this);
+    readData.apply(*this);
+    readData.apply(*this);
+    readData.apply(*this);
+    readData.apply(*this);
+    cleanup.apply(*this);
+
+  }
+
+
+  // ----------------------------------------------------------------------
+  // SeekTest
+  // ----------------------------------------------------------------------
+  void Tester ::
+      SeekTest()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file0";
+    const char* File2 = "/bin0/file1";
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenFile openFile(File1);
+    ReadData readData(File1);
+    WriteData writeData(File1);
+    SeekNFile seekNFile0(File1, 0);
+    SeekNFile seekNFile25(File1, 25);
+    SeekNFile seekNFile50(File1, 50);
+    SeekNFile seekNFile99(File1, 99);
+    ResetFile resetFile(File1);
+
+    Cleanup cleanup;
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openFile.apply(*this);
+    writeData.apply(*this);
+    writeData.apply(*this);
+    writeData.apply(*this);
+    writeData.apply(*this);
+    writeData.apply(*this);
+    writeData.apply(*this);
+    writeData.apply(*this);
+    writeData.apply(*this);
+    seekNFile50.apply(*this);
+    writeData.apply(*this);
+    seekNFile99.apply(*this);
+
+    cleanup.apply(*this);
+
+
+  }
+
 
   // ----------------------------------------------------------------------
   // DirectoryTest
@@ -114,11 +242,16 @@ namespace Os {
     CloseFile closeFile2(File2);
     Cleanup cleanup;
     MoveFile moveFile(File1, File2);
+    IsFileOpen isFileOpen1(File1);
+    IsFileOpen isFileOpen2(File2);
+    OpenFileNotExist openFileNotExit1(File1);
+    OpenFileNotExist openFileNotExit2(File2);
     
 
     // Run the Rules
     initFileSystem.apply(*this);
     openFile.apply(*this);
+    openFileNotExit2.apply(*this);
     writeData.apply(*this);
     checkFileSize.apply(*this);
     checkFileSize2.apply(*this);
@@ -126,6 +259,9 @@ namespace Os {
     moveFile.apply(*this);
     checkFileSize.apply(*this);
     checkFileSize2.apply(*this);
+    isFileOpen1.apply(*this);
+    isFileOpen2.apply(*this);
+    openFileNotExit1.apply(*this);
 
     cleanup.apply(*this);
   }
@@ -161,14 +297,15 @@ namespace Os {
     OpenFile openFile2(File2);
     MoveFile moveFile(File1, File2);
     CheckFileSize checkFileSize2(File2);
+    SeekFile seekFile(File1);
     
-
     Cleanup cleanup;
 
     // Run the Rules
     initFileSystem.apply(*this);
     openReadEarly.apply(*this);
     openFile.apply(*this);
+    seekFile.apply(*this);
     isFileOpen.apply(*this);
     writeData.apply(*this);
     removeBusyFile.apply(*this);
@@ -217,6 +354,7 @@ namespace Os {
     RemoveFile removeFile(File1);
     RemoveBusyFile removeBusyFile(File1);
     IsFileOpen isFileOpen(File1);
+    SeekFile seekFile(File1);
 
 
     // Run the Rules
@@ -235,7 +373,8 @@ namespace Os {
                                      &checkFileSize,
                                      &writeData,
                                      &readData,
-                                     &resetFile
+                                     &resetFile,
+                                     &seekFile
                                   };
     STest::RandomScenario<Tester> randomScenario(
         "RandomScenario",

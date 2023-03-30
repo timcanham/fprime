@@ -720,10 +720,6 @@
     };
 
 
-    
-
-
-
     // ------------------------------------------------------------------------------------------------------
     // Rule:  Directory
     //
@@ -753,6 +749,152 @@
 
             const char* dirpath;
             bool offNominal;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  SeekFile
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct SeekFile : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            SeekFile(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  SeekNFile
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct SeekNFile : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            SeekNFile(const char* filename, NATIVE_INT_TYPE seek);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+            NATIVE_INT_TYPE seek;
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  BulkWrite
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct BulkWrite : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            BulkWrite(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  CalcCRC32
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct CalcCRC32 : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            CalcCRC32(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
 
     };
 

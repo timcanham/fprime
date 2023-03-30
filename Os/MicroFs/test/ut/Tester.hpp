@@ -90,6 +90,9 @@ namespace Os {
       void OddTests();
       void MoveTest();
       void DirectoryTest();
+      void SeekTest();
+      void BulkTest();
+      void CrcTest();
 
       // Helper functions
       void clearFileBuffer();
