@@ -85,6 +85,10 @@
 //    will return OP_OK if the directories match the configuration
 //    This is to help commands pass if the create/remove are there and correct
 //
+// 2) A seek past the end of a file will fill the new area with zero bytes
+//
+// 3) Copying from a larger file slot to a smaller file slot will truncate the file
+//    if the source is larger
 
 namespace Os {
 
