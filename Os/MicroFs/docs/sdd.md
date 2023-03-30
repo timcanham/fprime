@@ -151,8 +151,9 @@ will follow the rules for nonexistent files.
 ##### 3.2.4.4 Move/Copy/Append Files
 
 This call will copy data from the source to destination file buffers. If the destination buffer is smaller than 
-the source(s), the data will be truncated to fit in the destination buffer. A `NO_PERMISSION` error will be 
-returned if source or destination file names do not match the naming scheme.
+the source(s), the data will be truncated to fit in the destination buffer. A `INVALID_PATH` error will be 
+returned if source or destination file names do not match the naming scheme or if the source file has not been
+created yet.
 
 ##### 3.2.4.5 Get File Size
 
