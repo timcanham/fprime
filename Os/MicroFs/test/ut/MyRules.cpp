@@ -94,6 +94,10 @@
     this->fileModel->curPtr = 0;
     Os::File::Status stat = this->fileModel->fileDesc.open(this->filename, Os::File::OPEN_WRITE);
     ASSERT_EQ(Os::File::OP_OK, stat);
+    
+    // This is just a dummy call to get code coverage.  Nothing happens here for this file system.
+    stat = this->fileModel->fileDesc.prealloc(0,0);
+    ASSERT_EQ(Os::File::OP_OK, stat);
 
     this->fileModel->mode = Os::Tester::FileModel::OPEN_WRITE;
   }
