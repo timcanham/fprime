@@ -100,6 +100,11 @@ TEST(FileOps, OddTests) {
 }
 #endif
 
+TEST(FileOps, OffNominalTests) {
+    Os::Tester tester;
+    tester.OffNominalTests();
+}
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

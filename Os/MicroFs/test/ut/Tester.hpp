@@ -93,6 +93,7 @@ namespace Os {
       void SeekTest();
       void BulkTest();
       void CrcTest();
+      void OffNominalTests();
 
       // Helper functions
       void clearFileBuffer();

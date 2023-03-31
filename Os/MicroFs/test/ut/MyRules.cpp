@@ -39,12 +39,12 @@
 
     ASSERT_LE(this->numBins, Os::MAX_MICROFS_BINS);
 
-    state.testCfg.numBins = this->numBins;
+    Os::MicroFsSetCfgBins(state.testCfg, this->numBins);
+
 
     for (U16 i=0; i < this->numBins; i++)
     {
-        state.testCfg.bins[i].fileSize = this->fileSize;
-        state.testCfg.bins[i].numFiles = this->numFiles;
+        Os::MicroFsAddBin(state.testCfg, i, this->fileSize, this->numFiles);
     }
     
     Os::MicroFsInit(state.testCfg, 0, state.alloc);

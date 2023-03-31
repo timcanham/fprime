@@ -45,6 +45,31 @@ namespace Os {
   // ----------------------------------------------------------------------
   
   // ----------------------------------------------------------------------
+  // OffNominalTests
+  // ----------------------------------------------------------------------
+  void Tester ::
+      OffNominalTests()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file10";
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    Cleanup cleanup;
+    OpenFileNotExist openFileNotExit1(File1);
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openFileNotExit1.apply(*this);
+    cleanup.apply(*this);
+
+  }
+
+  // ----------------------------------------------------------------------
   // CrcTest
   // ----------------------------------------------------------------------
   void Tester ::
@@ -245,14 +270,14 @@ namespace Os {
     MoveFile moveFile(File1, File2);
     IsFileOpen isFileOpen1(File1);
     IsFileOpen isFileOpen2(File2);
-    OpenFileNotExist openFileNotExit1(File1);
-    OpenFileNotExist openFileNotExit2(File2);
+    OpenFileNotExist openFileNotExist1(File1);
+    OpenFileNotExist openFileNotExist2(File2);
     
 
     // Run the Rules
     initFileSystem.apply(*this);
     openFile.apply(*this);
-    openFileNotExit2.apply(*this);
+    openFileNotExist2.apply(*this);
     writeData.apply(*this);
     checkFileSize.apply(*this);
     checkFileSize2.apply(*this);
@@ -262,7 +287,7 @@ namespace Os {
     checkFileSize2.apply(*this);
     isFileOpen1.apply(*this);
     isFileOpen2.apply(*this);
-    openFileNotExit1.apply(*this);
+    openFileNotExist1.apply(*this);
 
     cleanup.apply(*this);
   }
