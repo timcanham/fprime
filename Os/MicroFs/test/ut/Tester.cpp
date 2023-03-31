@@ -53,18 +53,40 @@ namespace Os {
     const U16 NumberBins = 1;
     const U16 NumberFiles = 2;
 
-    const char* File1 = "/bin0/file10";
+    // Bad bin number
+    const char* File1 = "/bin10/file0";
+    
+    // Bad file number
+    const char* File2 = "/bin0/file10";
+    
+    // Already opened
+    const char* File3 = "/bin0/file0";
 
     clearFileBuffer();
 
     // Instantiate the Rules
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
     Cleanup cleanup;
-    OpenFileNotExist openFileNotExit1(File1);
+    OpenFileNotExist openFileNotExist1(File1);
+    OpenFileNotExist openFileNotExist2(File2);
+    OpenFile openFile1(File3);
+    OpenNoPerm openNoPerm(File3);
 
     // Run the Rules
+
     initFileSystem.apply(*this);
-    openFileNotExit1.apply(*this);
+
+    // Bad bin number
+    openFileNotExist1.apply(*this);
+
+    // Bad file number
+    openFileNotExist2.apply(*this);
+    
+    
+    openFile1.apply(*this);
+    // Open a file that's already opened
+    openNoPerm.apply(*this);
+
     cleanup.apply(*this);
 
   }
