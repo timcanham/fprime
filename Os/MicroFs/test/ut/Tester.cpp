@@ -71,6 +71,29 @@ namespace Os {
     OpenFileNotExist openFileNotExist2(File2);
     OpenFile openFile1(File3);
     OpenNoPerm openNoPerm(File3);
+    SeekNotOpen seekNotOpen(File3);
+    CloseFile closeFile1(File3);
+
+    SeekBadSize seekBadSize(File3, FILE_SIZE+1);
+    SeekRelative seekRelative(File3, 0);
+    SeekRelative seekRelative1(File3, FILE_SIZE/2);
+    SeekRelative seekRelative2(File3, FILE_SIZE/2 - 1);
+    SeekRelative seekRelative3(File3, 1);
+    ReadNotOpen readNotOpen(File3);
+    WriteNotOpen writeNotOpen(File3);
+    BulkWriteNoOpen BulkWriteNoOpen(File3);
+    FlushFile flushFile(File3);
+    GetErrors getErrors(File3);
+    CopyFile copyFile(File1, File2);
+    AppendFile appendFile(File1, File2);
+    ReadDirInvalid readDirInvalid("/bin2");
+    ReadDirInvalid readDirInvalid2(nullptr);
+    ReadDirInvalid readDirInvalid3(" ");
+
+    RemoveInvalid removeInvalid(nullptr);
+    RemoveInvalid removeInvalid1("/bin0/file10");
+
+    GetFileSizeInvalid getFileSizeInvalid("/bin0/file10");
 
     // Run the Rules
 
@@ -86,6 +109,38 @@ namespace Os {
     openFile1.apply(*this);
     // Open a file that's already opened
     openNoPerm.apply(*this);
+
+    closeFile1.apply(*this);
+    seekNotOpen.apply(*this);
+
+    openFile1.apply(*this);
+    seekBadSize.apply(*this);
+
+    seekRelative.apply(*this);
+    seekRelative1.apply(*this);
+    seekRelative2.apply(*this);
+    seekRelative3.apply(*this);
+    flushFile.apply(*this);
+
+
+    closeFile1.apply(*this);
+    readNotOpen.apply(*this);
+    writeNotOpen.apply(*this);
+    BulkWriteNoOpen.apply(*this);
+    flushFile.apply(*this);
+    getErrors.apply(*this);
+
+    copyFile.apply(*this);
+    appendFile.apply(*this);
+
+    readDirInvalid.apply(*this);
+    readDirInvalid2.apply(*this);
+    readDirInvalid3.apply(*this);
+
+    removeInvalid.apply(*this);
+    removeInvalid1.apply(*this);
+
+    getFileSizeInvalid.apply(*this);
 
     cleanup.apply(*this);
 
@@ -113,6 +168,7 @@ namespace Os {
     CalcCRC32 calcCRC32(File1);
     ResetFile resetFile(File1);
     ReadData readData(File1);
+    CloseFile closeFile(File1);
     Cleanup cleanup;
 
     // Run the Rules
@@ -130,6 +186,10 @@ namespace Os {
     readData.apply(*this);
     readData.apply(*this);
     readData.apply(*this);
+
+    closeFile.apply(*this);
+    calcCRC32.apply(*this);
+
     cleanup.apply(*this);
 
   }
@@ -272,10 +332,12 @@ namespace Os {
     MoveTest()
   {
     const U16 NumberBins = 1;
-    const U16 NumberFiles = 2;
+    const U16 NumberFiles = 3;
 
     const char* File1 = "/bin0/file0";
     const char* File2 = "/bin0/file1";
+    const char* File3 = "/bin0/file10";
+    const char* File4 = "/bin0/file2";
 
     clearFileBuffer();
 
@@ -294,6 +356,12 @@ namespace Os {
     IsFileOpen isFileOpen2(File2);
     OpenFileNotExist openFileNotExist1(File1);
     OpenFileNotExist openFileNotExist2(File2);
+    MoveInvalid moveInvalid(File1, File3);
+    MoveInvalid moveInvalid1(File3, File1);
+    MoveInvalid moveInvalid2(nullptr, File1);
+    MoveInvalid moveInvalid3(File1, nullptr);
+    MoveInvalid moveInvalid4(File4, File1);
+    MoveBusy moveBusy(File1, File2);
     
 
     // Run the Rules
@@ -310,6 +378,20 @@ namespace Os {
     isFileOpen1.apply(*this);
     isFileOpen2.apply(*this);
     openFileNotExist1.apply(*this);
+
+    moveInvalid.apply(*this);
+    moveInvalid1.apply(*this);
+    moveInvalid2.apply(*this);
+    moveInvalid3.apply(*this);
+    moveInvalid4.apply(*this);
+
+    openFile.apply(*this);
+    closeFile2.apply(*this);
+    moveBusy.apply(*this);
+
+    closeFile.apply(*this);
+    openFile2.apply(*this);
+    moveBusy.apply(*this);
 
     cleanup.apply(*this);
   }
@@ -376,6 +458,7 @@ namespace Os {
   {
     const U16 NumberBins = 1;
     const U16 NumberFiles = 2;
+    const U32 RandomIterations = 4000;
 
     const char* File1 = "/bin0/file0";
     const char* File2 = "/bin0/file1";
@@ -432,10 +515,10 @@ namespace Os {
     STest::BoundedScenario<Tester> boundedScenario(
         "BoundedScenario",
         randomScenario,
-        2000
+        RandomIterations
     );
     const U32 numSteps = boundedScenario.run(*this);
-    ASSERT_EQ(2000, numSteps);
+    ASSERT_EQ(RandomIterations, numSteps);
 
     cleanup.apply(*this);
   }
@@ -838,6 +921,8 @@ namespace Os {
       return -1;
 
     } else {
+      FW_ASSERT(binIndex < MAX_BINS, binIndex);
+      FW_ASSERT(fileIndex < MAX_FILES_PER_BIN, fileIndex);
       return binIndex * MAX_BINS + fileIndex;
     }
 

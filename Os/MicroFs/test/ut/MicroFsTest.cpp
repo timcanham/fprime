@@ -9,7 +9,7 @@
 
 #define FULL_TEST
 #define NUKE_TEST
-#define ODD_TEST
+#define OFF_NOMINAL
 
 #ifdef FULL_TEST
 
@@ -83,6 +83,11 @@ TEST(FileOps, CrcTest) {
     tester.CrcTest();
 }
 
+TEST(FileOps, OddTests) {
+    Os::Tester tester;
+    tester.OddTests();
+}
+
 #endif
 
 
@@ -93,17 +98,12 @@ TEST(FileOps, NukeTest) {
 }
 #endif
 
-#ifdef ODD_TEST
-TEST(FileOps, OddTests) {
-    Os::Tester tester;
-    tester.OddTests();
-}
-#endif
-
+#ifdef OFF_NOMINAL
 TEST(FileOps, OffNominalTests) {
     Os::Tester tester;
     tester.OffNominalTests();
 }
+#endif
 
 
 int main(int argc, char **argv) {
