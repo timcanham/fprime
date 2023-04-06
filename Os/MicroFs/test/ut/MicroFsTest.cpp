@@ -9,11 +9,10 @@
 
 #define FULL_TEST
 #define NUKE_TEST
-//#define MOVE_TEST
-#define ODD_TEST
-
+#define OFF_NOMINAL
 
 #ifdef FULL_TEST
+
 TEST(Initialization, InitTest) {
     Os::Tester tester;
     tester.InitTest();
@@ -63,7 +62,34 @@ TEST(FileOps, DirectoryTest) {
     Os::Tester tester;
     tester.DirectoryTest();
 }
+
+TEST(FileOps, MoveTest) {
+    Os::Tester tester;
+    tester.MoveTest();
+}
+
+TEST(FileOps, BulkTest) {
+    Os::Tester tester;
+    tester.BulkTest();
+}
+
+TEST(FileOps, SeekTest) {
+    Os::Tester tester;
+    tester.SeekTest();
+}
+
+TEST(FileOps, CrcTest) {
+    Os::Tester tester;
+    tester.CrcTest();
+}
+
+TEST(FileOps, OddTests) {
+    Os::Tester tester;
+    tester.OddTests();
+}
+
 #endif
+
 
 #ifdef NUKE_TEST
 TEST(FileOps, NukeTest) {
@@ -72,19 +98,13 @@ TEST(FileOps, NukeTest) {
 }
 #endif
 
-#ifdef ODD_TEST
-TEST(FileOps, OddTests) {
+#ifdef OFF_NOMINAL
+TEST(FileOps, OffNominalTests) {
     Os::Tester tester;
-    tester.OddTests();
+    tester.OffNominalTests();
 }
 #endif
 
-#ifdef MOVE_TEST
-TEST(FileOps, MoveTest) {
-    Os::Tester tester;
-    tester.MoveTest();
-}
-#endif
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

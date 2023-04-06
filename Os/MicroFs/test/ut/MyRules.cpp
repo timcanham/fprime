@@ -39,12 +39,12 @@
 
     ASSERT_LE(this->numBins, Os::MAX_MICROFS_BINS);
 
-    state.testCfg.numBins = this->numBins;
+    Os::MicroFsSetCfgBins(state.testCfg, this->numBins);
+
 
     for (U16 i=0; i < this->numBins; i++)
     {
-        state.testCfg.bins[i].fileSize = this->fileSize;
-        state.testCfg.bins[i].numFiles = this->numFiles;
+        Os::MicroFsAddBin(state.testCfg, i, this->fileSize, this->numFiles);
     }
     
     Os::MicroFsInit(state.testCfg, 0, state.alloc);
@@ -94,6 +94,10 @@
     this->fileModel->curPtr = 0;
     Os::File::Status stat = this->fileModel->fileDesc.open(this->filename, Os::File::OPEN_WRITE);
     ASSERT_EQ(Os::File::OP_OK, stat);
+    
+    // This is just a dummy call to get code coverage.  Nothing happens here for this file system.
+    stat = this->fileModel->fileDesc.prealloc(0,0);
+    ASSERT_EQ(Os::File::OP_OK, stat);
 
     this->fileModel->mode = Os::Tester::FileModel::OPEN_WRITE;
   }
@@ -140,10 +144,9 @@
   //
   // ------------------------------------------------------------------------------------------------------
   
-  Os::Tester::WriteData::WriteData(const char *filename, NATIVE_INT_TYPE size) :
+  Os::Tester::WriteData::WriteData(const char *filename) :
         STest::Rule<Os::Tester>("WriteData")
   {
-    this->size = size;
     this->filename = filename;
     
   }
@@ -166,16 +169,20 @@
   {
     
     NATIVE_UINT_TYPE fillSize;
+
+    // Randomize how many bytes are written to the file
+    NATIVE_INT_TYPE randSize = rand() % Tester::FILE_SIZE + 1;
     
-    if ((fileModel->curPtr + this->size) > Tester::FILE_SIZE) {
+    if ((fileModel->curPtr + randSize) > Tester::FILE_SIZE) {
       fillSize = Tester::FILE_SIZE - fileModel->curPtr;
     } else {
-      fillSize = this->size;
+      fillSize = randSize;
     }
 
+    printf("--> Rule: %s %s %d bytes\n", this->name, this->filename, fillSize);
+
+
     // Fill the memory buffer with random numbers between 0 and 0xFF inclusive
-    // Seed the random number generate
-    //srand(time(NULL));
 
     NATIVE_INT_TYPE offset = fileModel->curPtr;
     for (U32 i=0; i < fillSize; i++)
@@ -184,7 +191,7 @@
       this->fileModel->buffOut[offset + i] = rand() % 256;
     }
     
-    NATIVE_INT_TYPE retSize = this->size;
+    NATIVE_INT_TYPE retSize = randSize;
     Os::File::Status stat = fileModel->fileDesc.write(this->fileModel->buffOut + this->fileModel->curPtr, retSize);
     ASSERT_EQ(stat, Os::File::OP_OK);
     ASSERT_LE(this->fileModel->curPtr + retSize, Tester::FILE_SIZE);
@@ -209,10 +216,9 @@
   //
   // ------------------------------------------------------------------------------------------------------
   
-  Os::Tester::ReadData::ReadData(const char *filename, NATIVE_INT_TYPE size) :
+  Os::Tester::ReadData::ReadData(const char *filename) :
         STest::Rule<Os::Tester>("ReadData")
   {
-    this->size = size;
     this->filename = filename;
   }
 
@@ -234,11 +240,14 @@
         ) 
   {
 
+      // Randomize how much data is read
+      NATIVE_INT_TYPE randSize = rand() % Tester::FILE_SIZE + 1;
+
       BYTE buffIn[state.testCfg.bins[0].fileSize];
       NATIVE_INT_TYPE bufferSize = sizeof(buffIn);
       memset(buffIn,0xA5,sizeof(buffIn));
-      ASSERT_LE(this->size, sizeof(buffIn));
-      NATIVE_INT_TYPE retSize = this->size;
+      ASSERT_LE(randSize, sizeof(buffIn));
+      NATIVE_INT_TYPE retSize = randSize;
       Os::File::Status stat = this->fileModel->fileDesc.read(buffIn, retSize);
 
       ASSERT_EQ(stat, Os::File::OP_OK);
@@ -247,12 +256,13 @@
 
       // Check the returned data
       ASSERT_LE(fileModel->curPtr + retSize, Tester::FILE_SIZE);
+
       ASSERT_EQ(0,memcmp(buffIn, this->fileModel->buffOut + this->fileModel->curPtr, retSize));
 
       // Update the FileModel
       fileModel->curPtr += retSize;
 
-      printf("--> Rule: %s %d bytes\n", this->name, retSize);
+      printf("--> Rule: %s %s %d bytes\n", this->name, this->filename, retSize);
 
   }
 
@@ -287,7 +297,7 @@
             Os::Tester& state //!< The test state
         ) 
   {
-      printf("--> Rule: %s \n", this->name);
+      printf("--> Rule: %s %s\n", this->name, this->filename);
 
       // seek back to beginning
       ASSERT_EQ(Os::File::OP_OK, this->fileModel->fileDesc.seek(0));
@@ -844,8 +854,7 @@
       this->sourceModel = const_cast<Os::Tester&>(state).getFileModel(this->sourcefile);
       this->destModel = const_cast<Os::Tester&>(state).getFileModel(this->destfile);
 
-      return ((this->sourceModel->mode == Os::Tester::FileModel::CLOSED) &&
-              (this->destModel->mode == Os::Tester::FileModel::CLOSED));
+      return (this->sourceModel->mode == Os::Tester::FileModel::CLOSED);
 
   }
 
@@ -921,4 +930,799 @@
 
   }
 
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  SeekFile
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::SeekFile::SeekFile(const char* filename) :
+        STest::Rule<Os::Tester>("SeekFile")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::SeekFile::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return ((fileModel->mode ==  Os::Tester::FileModel::OPEN_READ) ||
+              (fileModel->mode ==  Os::Tester::FileModel::OPEN_WRITE));
+  }
+
+  
+  void Os::Tester::SeekFile::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      // Seek random
+      NATIVE_INT_TYPE randSeek = rand() % Tester::FILE_SIZE;
+      Os::File::Status stat = this->fileModel->fileDesc.seek(randSeek);
+      ASSERT_EQ(Os::File::OP_OK, stat);
+
+      // Update the model
+      I32 oldSize = this->fileModel->size;
+      this->fileModel->curPtr = randSeek;
+      if (this->fileModel->curPtr > this->fileModel->size)
+      {
+        this->fileModel->size = this->fileModel->curPtr;
+      }
+
+      // fill with zeros if seek went past old size
+      if (this->fileModel->size > oldSize) {
+        memset(&this->fileModel->buffOut[oldSize], 0, this->fileModel->size - oldSize);
+      }
+
+      
+      printf("--> Rule: %s %s %d\n", this->name, this->filename, randSeek);
+
+
+  }
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  SeekNFile
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::SeekNFile::SeekNFile(const char* filename, NATIVE_INT_TYPE seek) :
+        STest::Rule<Os::Tester>("SeekNFile")
+  {
+    this->filename = filename;
+    this->seek = seek;
+  }
+
+
+  bool Os::Tester::SeekNFile::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return ((fileModel->mode ==  Os::Tester::FileModel::OPEN_READ) ||
+              (fileModel->mode ==  Os::Tester::FileModel::OPEN_WRITE));
+  }
+
+  
+  void Os::Tester::SeekNFile::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      Os::File::Status stat = this->fileModel->fileDesc.seek(this->seek);
+      ASSERT_EQ(Os::File::OP_OK, stat);
+
+      // Update the model
+      I32 oldSize = this->fileModel->size;
+
+      this->fileModel->curPtr = this->seek;
+      if (this->fileModel->curPtr > this->fileModel->size)
+      {
+        this->fileModel->size = this->fileModel->curPtr;
+      }
+      
+      // fill with zeros if seek went past old size
+      if (this->fileModel->size > oldSize) {
+        memset(&this->fileModel->buffOut[oldSize], 0, this->fileModel->size - oldSize);
+      }
+
+      printf("--> Rule: %s %s %d\n", this->name, this->filename, this->seek);
+
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  BulkWrite
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::BulkWrite::BulkWrite(const char* filename) :
+        STest::Rule<Os::Tester>("BulkWrite")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::BulkWrite::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return ((fileModel->mode ==  Os::Tester::FileModel::OPEN_WRITE) ||
+              (fileModel->mode ==  Os::Tester::FileModel::OPEN_READ));
+  }
+
+  
+  void Os::Tester::BulkWrite::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+
+    NATIVE_UINT_TYPE fillSize = FILE_SIZE;
+
+    if ((fileModel->curPtr + fillSize) > Tester::FILE_SIZE) {
+      fillSize = Tester::FILE_SIZE - fileModel->curPtr;
+    }
+
+    Os::File::Status stat = fileModel->fileDesc.bulkWrite(this->fileModel->buffOut + this->fileModel->curPtr, fillSize, fillSize);
+    ASSERT_EQ(stat, Os::File::OP_OK);
+
+    //Update FileModel
+    this->fileModel->curPtr += fillSize;
+    // Check if the currSize is to be increased.
+    if (fileModel->curPtr > fileModel->size)
+    {
+        fileModel->size = fileModel->curPtr;
+    }
+
+    printf("--> Rule: %s %s %d bytes\n", this->name, this->filename, fillSize);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  CalcCRC32
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::CalcCRC32::CalcCRC32(const char* filename) :
+        STest::Rule<Os::Tester>("CalcCRC32")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::CalcCRC32::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return true;
+  }
+
+  
+  void Os::Tester::CalcCRC32::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      printf("--> Rule: %s %s\n", this->name, this->filename);
+
+      U32 crc;
+      Os::File::Status stat = fileModel->fileDesc.calculateCRC32(crc);
+
+      if ((fileModel->mode ==  Os::Tester::FileModel::OPEN_READ) ||
+          (fileModel->mode ==  Os::Tester::FileModel::OPEN_WRITE))
+      {
+
+          ASSERT_EQ(stat, Os::File::OP_OK);
+
+          // Update model
+          this->fileModel->curPtr = this->fileModel->size;
+      
+      } else {
+
+          ASSERT_EQ(stat, Os::File::NOT_OPENED);
+
+      }
+
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  SeekNotOpen
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::SeekNotOpen::SeekNotOpen(const char* filename) :
+        STest::Rule<Os::Tester>("SeekNotOpen")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::SeekNotOpen::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return ((fileModel->mode !=  Os::Tester::FileModel::OPEN_WRITE) &&
+              (fileModel->mode !=  Os::Tester::FileModel::OPEN_READ));
+
+  }
+
+  
+  void Os::Tester::SeekNotOpen::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      printf("--> Rule: %s %s\n", this->name, this->filename);
+
+      Os::File::Status stat = this->fileModel->fileDesc.seek(0);
+      ASSERT_EQ(Os::File::NOT_OPENED, stat);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  SeekBadSize
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::SeekBadSize::SeekBadSize(const char* filename, NATIVE_INT_TYPE seek) :
+        STest::Rule<Os::Tester>("SeekBadSize")
+  {
+    this->filename = filename;
+    this->seek = seek;
+  }
+
+
+  bool Os::Tester::SeekBadSize::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return ((fileModel->mode ==  Os::Tester::FileModel::OPEN_WRITE) ||
+              (fileModel->mode ==  Os::Tester::FileModel::OPEN_READ));
+
+  }
+
+  
+  void Os::Tester::SeekBadSize::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      printf("--> Rule: %s %s\n", this->name, this->filename);
+
+      Os::File::Status stat = this->fileModel->fileDesc.seek(this->seek);
+      ASSERT_EQ(Os::File::BAD_SIZE, stat);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  SeekRelative
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::SeekRelative::SeekRelative(const char* filename, NATIVE_INT_TYPE seek) :
+        STest::Rule<Os::Tester>("SeekRelative")
+  {
+    this->filename = filename;
+    this->seek = seek;
+  }
+
+
+  bool Os::Tester::SeekRelative::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return ((fileModel->mode ==  Os::Tester::FileModel::OPEN_WRITE) ||
+              (fileModel->mode ==  Os::Tester::FileModel::OPEN_READ));
+
+  }
+
+  
+  void Os::Tester::SeekRelative::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      Os::File::Status stat = this->fileModel->fileDesc.seek(this->seek, false);
+      if (this->fileModel->curPtr + this->seek >= FILE_SIZE)
+      {
+        ASSERT_EQ(Os::File::BAD_SIZE, stat);
+
+      } else {
+
+        ASSERT_EQ(Os::File::OP_OK, stat);
+
+        // Update the model
+        I32 oldSize = this->fileModel->size;
+
+        this->fileModel->curPtr += this->seek;
+        if (this->fileModel->curPtr > this->fileModel->size)
+        {
+          this->fileModel->size = this->fileModel->curPtr;
+        }
+        
+        // fill with zeros if seek went past old size
+        if (this->fileModel->size > oldSize) {
+          memset(&this->fileModel->buffOut[oldSize], 0, this->fileModel->size - oldSize);
+        }
+
+      }
+
+      printf("--> Rule: %s %s %d\n", this->name, this->filename, this->seek);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  ReadNotOpen
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::ReadNotOpen::ReadNotOpen(const char* filename) :
+        STest::Rule<Os::Tester>("ReadNotOpen")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::ReadNotOpen::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return ((fileModel->mode !=  Os::Tester::FileModel::OPEN_WRITE) &&
+              (fileModel->mode !=  Os::Tester::FileModel::OPEN_READ));
+
+  }
+
+  
+  void Os::Tester::ReadNotOpen::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      BYTE buffIn[FILE_SIZE];
+      NATIVE_INT_TYPE size = FILE_SIZE;
+
+      printf("--> Rule: %s %s\n", this->name, this->filename);
+      Os::File::Status stat = this->fileModel->fileDesc.read(buffIn, size);
+      ASSERT_EQ(Os::File::NOT_OPENED, stat);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  WriteNotOpen
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::WriteNotOpen::WriteNotOpen(const char* filename) :
+        STest::Rule<Os::Tester>("WriteNotOpen")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::WriteNotOpen::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return ((fileModel->mode !=  Os::Tester::FileModel::OPEN_WRITE) &&
+              (fileModel->mode !=  Os::Tester::FileModel::OPEN_READ));
+  }
+
+  
+  void Os::Tester::WriteNotOpen::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      printf("--> Rule: %s %s\n", this->name, this->filename);
+      NATIVE_INT_TYPE size = FILE_SIZE;
+      Os::File::Status stat = fileModel->fileDesc.write(this->fileModel->buffOut + this->fileModel->curPtr, size);
+      ASSERT_EQ(Os::File::NOT_OPENED, stat);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  BulkWriteNoOpen
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::BulkWriteNoOpen::BulkWriteNoOpen(const char* filename) :
+        STest::Rule<Os::Tester>("BulkWriteNoOpen")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::BulkWriteNoOpen::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return ((fileModel->mode !=  Os::Tester::FileModel::OPEN_WRITE) &&
+              (fileModel->mode !=  Os::Tester::FileModel::OPEN_READ));
+  }
+
+  
+  void Os::Tester::BulkWriteNoOpen::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      NATIVE_UINT_TYPE size = FILE_SIZE;
+      Os::File::Status stat = fileModel->fileDesc.bulkWrite(this->fileModel->buffOut + this->fileModel->curPtr, size, size);
+      ASSERT_EQ(stat, Os::File::NOT_OPENED);
+
+      printf("--> Rule: %s %s\n", this->name, this->filename);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  FlushFile
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::FlushFile::FlushFile(const char* filename) :
+        STest::Rule<Os::Tester>("FlushFile")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::FlushFile::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return true;
+  }
+
+  
+  void Os::Tester::FlushFile::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+
+      printf("--> Rule: %s %s\n", this->name, this->filename);
+
+      Os::File::Status stat = fileModel->fileDesc.flush();
+      if ((fileModel->mode ==  Os::Tester::FileModel::OPEN_WRITE) ||
+          (fileModel->mode ==  Os::Tester::FileModel::OPEN_READ))
+      {
+
+        ASSERT_EQ(stat, Os::File::OP_OK);
+
+      } else {
+
+        ASSERT_EQ(stat, Os::File::NOT_OPENED);
+
+      }
+
+  }
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  GetErrors
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::GetErrors::GetErrors(const char* filename) :
+        STest::Rule<Os::Tester>("GetErrors")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::GetErrors::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
+      return true;
+  }
+
+  
+  void Os::Tester::GetErrors::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      printf("--> Rule: %s %s\n", this->name, this->filename);
+
+      NATIVE_INT_TYPE lastError = fileModel->fileDesc.getLastError();
+      ASSERT_EQ(lastError, 0);
+
+      const char* lastErrorString = fileModel->fileDesc.getLastErrorString();
+      ASSERT_STREQ(lastErrorString, "Success");
+
+
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  CopyFile
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::CopyFile::CopyFile(const char* srcFile, const char* destFile) :
+        STest::Rule<Os::Tester>("CopyFile")
+  {
+    this->srcFile = srcFile;
+    this->destFile = destFile;
+  }
+
+
+  bool Os::Tester::CopyFile::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return true;
+  }
+
+  
+  void Os::Tester::CopyFile::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      printf("--> Rule: %s \n", this->name);
+      Os::FileSystem::Status stat = Os::FileSystem::copyFile(this->srcFile, this->destFile);
+      ASSERT_EQ(Os::FileSystem::OP_OK, stat);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  AppendFile
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::AppendFile::AppendFile(const char* srcFile, const char* destFile) :
+        STest::Rule<Os::Tester>("AppendFile")
+  {
+    this->srcFile = srcFile;
+    this->destFile = destFile;
+  }
+
+
+  bool Os::Tester::AppendFile::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return true;
+  }
+
+  
+  void Os::Tester::AppendFile::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      Os::FileSystem::Status stat = Os::FileSystem::appendFile(this->srcFile, this->destFile);
+      ASSERT_EQ(Os::FileSystem::OP_OK, stat);
+      printf("--> Rule: %s \n", this->name);
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  MoveInvalid
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::MoveInvalid::MoveInvalid(const char* sourceFile, const char* destFile) :
+        STest::Rule<Os::Tester>("MoveInvalid")
+  {
+    this->sourceFile = sourceFile;
+    this->destFile = destFile;
+  }
+
+
+  bool Os::Tester::MoveInvalid::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return true;
+  }
+
+  
+  void Os::Tester::MoveInvalid::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      
+      Os::FileSystem::Status stat = Os::FileSystem::moveFile(this->sourceFile, this->destFile);
+      ASSERT_EQ(Os::FileSystem::Status::INVALID_PATH, stat);
+
+      printf("--> Rule: %s %s to %s\n", this->name, this->sourceFile, this->destFile);
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  MoveBusy
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::MoveBusy::MoveBusy(const char* sourceFile, const char* destFile) :
+        STest::Rule<Os::Tester>("MoveBusy")
+  {
+    this->sourceFile = sourceFile;
+    this->destFile = destFile;
+  }
+
+
+  bool Os::Tester::MoveBusy::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return true;
+  }
+
+  
+  void Os::Tester::MoveBusy::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      Os::FileSystem::Status stat = Os::FileSystem::moveFile(this->sourceFile, this->destFile);
+      ASSERT_EQ(Os::FileSystem::Status::BUSY, stat);
+
+      printf("--> Rule: %s %s to %s\n", this->name, this->sourceFile, this->destFile);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  ReadDirInvalid
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::ReadDirInvalid::ReadDirInvalid(const char* binPath) :
+        STest::Rule<Os::Tester>("ReadDirInvalid")
+  {
+    this->binPath = binPath;
+  }
+
+
+  bool Os::Tester::ReadDirInvalid::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return true;
+  }
+
+  
+  void Os::Tester::ReadDirInvalid::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      Fw::String bins[MAX_BINS];
+      U32 totalBins = MAX_BINS;
+
+      printf("--> Rule: %s %s\n", this->name, this->binPath);
+
+      Os::FileSystem::Status stat = Os::FileSystem::readDirectory(this->binPath, MAX_BINS, bins, totalBins);
+      ASSERT_EQ(stat, Os::FileSystem::INVALID_PATH);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  RemoveInvalid
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::RemoveInvalid::RemoveInvalid(const char* filename) :
+        STest::Rule<Os::Tester>("RemoveInvalid")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::RemoveInvalid::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return true;
+  }
+
+  
+  void Os::Tester::RemoveInvalid::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      printf("--> Rule: %s %s\n", this->name, this->filename);
+
+      Os::FileSystem::Status stat = Os::FileSystem::removeFile(this->filename);
+      ASSERT_EQ(Os::FileSystem::INVALID_PATH, stat);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  GetFileSizeInvalid
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::GetFileSizeInvalid::GetFileSizeInvalid(const char* filename) :
+        STest::Rule<Os::Tester>("GetFileSizeInvalid")
+  {
+    this->filename = filename;
+  }
+
+
+  bool Os::Tester::GetFileSizeInvalid::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return true;
+  }
+
+  
+  void Os::Tester::GetFileSizeInvalid::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      printf("--> Rule: %s %s\n", this->name, this->filename);
+
+      FwSizeType actualSize;
+      FileSystem::Status stat = FileSystem::getFileSize(this->filename, actualSize);
+      ASSERT_EQ(FileSystem::INVALID_PATH, stat);
+
+  }
 

@@ -119,7 +119,7 @@
             // ----------------------------------------------------------------------
 
             //! Constructor
-            WriteData(const char *filename, NATIVE_INT_TYPE size);
+            WriteData(const char *filename);
 
             // ----------------------------------------------------------------------
             // Public member functions
@@ -135,7 +135,6 @@
                 Os::Tester& state //!< The test state
             );
 
-            NATIVE_INT_TYPE size;
             const char* filename;
             Os::Tester::FileModel *fileModel;
 
@@ -157,7 +156,7 @@
             // ----------------------------------------------------------------------
 
             //! Constructor
-            ReadData(const char *filename, NATIVE_INT_TYPE size);
+            ReadData(const char *filename);
 
             // ----------------------------------------------------------------------
             // Public member functions
@@ -173,7 +172,6 @@
                 Os::Tester& state //!< The test state
             );
 
-            NATIVE_INT_TYPE size;
             const char *filename;
             Os::Tester::FileModel *fileModel;
 
@@ -722,10 +720,6 @@
     };
 
 
-    
-
-
-
     // ------------------------------------------------------------------------------------------------------
     // Rule:  Directory
     //
@@ -755,6 +749,701 @@
 
             const char* dirpath;
             bool offNominal;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  SeekFile
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct SeekFile : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            SeekFile(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  SeekNFile
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct SeekNFile : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            SeekNFile(const char* filename, NATIVE_INT_TYPE seek);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+            NATIVE_INT_TYPE seek;
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  BulkWrite
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct BulkWrite : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            BulkWrite(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  CalcCRC32
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct CalcCRC32 : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            CalcCRC32(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  SeekNotOpen
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct SeekNotOpen : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            SeekNotOpen(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  SeekBadSize
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct SeekBadSize : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            SeekBadSize(const char* filename, NATIVE_INT_TYPE seek);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+            NATIVE_INT_TYPE seek;
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  SeekRelative
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct SeekRelative : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            SeekRelative(const char* filename, NATIVE_INT_TYPE seek);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+            NATIVE_INT_TYPE seek;
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  ReadNotOpen
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct ReadNotOpen : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            ReadNotOpen(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  WriteNotOpen
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct WriteNotOpen : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            WriteNotOpen(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  BulkWriteNoOpen
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct BulkWriteNoOpen : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            BulkWriteNoOpen(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  FlushFile
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct FlushFile : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            FlushFile(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  GetErrors
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct GetErrors : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            GetErrors(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+            Os::Tester::FileModel *fileModel;
+
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  CopyFile
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct CopyFile : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            CopyFile(const char* srcFile, const char* destFile);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* srcFile;
+            const char* destFile;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  AppendFile
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct AppendFile : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            AppendFile(const char* srcFile, const char* destFile);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* srcFile;
+            const char* destFile;
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  MoveInvalid
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct MoveInvalid : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            MoveInvalid(const char* sourceFile, const char* destFile);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* sourceFile;
+            const char* destFile;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  MoveBusy
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct MoveBusy : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            MoveBusy(const char* sourceFile, const char* destFile);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* sourceFile;
+            const char* destFile;
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  ReadDirInvalid
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct ReadDirInvalid : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            ReadDirInvalid(const char* binPath);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* binPath;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  RemoveInvalid
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct RemoveInvalid : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            RemoveInvalid(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
+
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  GetFileSizeInvalid
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct GetFileSizeInvalid : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            GetFileSizeInvalid(const char* filename);
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+            const char* filename;
 
     };
 

@@ -204,13 +204,6 @@ File::Status File::open(const char* fileName, File::Mode mode, bool include_excl
         return File::Status::NO_PERMISSION;
     }
 
-
-    // return an error if it's already open
-    if (state->loc != -1) {
-        return File::Status::NO_PERMISSION;
-    }
-
-
     switch (mode) {
         case OPEN_READ:
             // if not written to yet, doesn't exist for read
