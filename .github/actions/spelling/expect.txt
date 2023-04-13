@@ -924,6 +924,7 @@ newself
 newstring
 newtio
 nfds
+NFile
 Nicolich
 ninjaaron
 NMEA
