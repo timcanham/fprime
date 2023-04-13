@@ -88,6 +88,11 @@ TEST(FileOps, OddTests) {
     tester.OddTests();
 }
 
+TEST(FileOps, CopyTest) {
+    Os::Tester tester;
+    tester.CopyTest();
+}
+
 #endif
 
 

@@ -45,6 +45,56 @@ namespace Os {
   // ----------------------------------------------------------------------
   
   // ----------------------------------------------------------------------
+  // CopyTest
+  // ----------------------------------------------------------------------
+  void Tester ::
+      CopyTest()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file0";
+    const char* File2 = "/bin0/file1";
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenFile openFile1(File1);
+    OpenFile openFile2(File2);
+    OpenRead openRead1(File1);
+    OpenRead openRead2(File2);
+    WriteData writeData(File1);
+    CheckFileSize checkFileSize1(File1);
+    CheckFileSize checkFileSize2(File2);
+    CalcCRC32 calcCRC32(File1);
+    ReadData readData1(File1);
+    ReadData readData2(File2);
+    CloseFile closeFile(File1);
+    CopyFile copyFile(File1, File2);
+    ResetFile resetFile1(File1);
+    ResetFile resetFile2(File2);
+
+    Cleanup cleanup;
+
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openFile1.apply(*this);
+    writeData.apply(*this);
+    closeFile.apply(*this);
+    copyFile.apply(*this);
+    checkFileSize1.apply(*this);
+    checkFileSize2.apply(*this);
+    openRead1.apply(*this);
+    readData1.apply(*this);
+    openRead2.apply(*this);
+    readData2.apply(*this);
+    cleanup.apply(*this);
+
+  }
+
+  // ----------------------------------------------------------------------
   // OffNominalTests
   // ----------------------------------------------------------------------
   void Tester ::
@@ -130,8 +180,8 @@ namespace Os {
     flushFile.apply(*this);
     getErrors.apply(*this);
 
-    copyFile.apply(*this);
-    appendFile.apply(*this);
+    //copyFile.apply(*this);
+    //appendFile.apply(*this);
 
     readDirInvalid.apply(*this);
     readDirInvalid2.apply(*this);

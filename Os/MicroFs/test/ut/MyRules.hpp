@@ -1228,6 +1228,9 @@
 
             const char* srcFile;
             const char* destFile;
+            Os::Tester::FileModel *srcModel;
+            Os::Tester::FileModel *destModel;
+
 
     };
 

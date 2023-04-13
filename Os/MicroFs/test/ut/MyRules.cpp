@@ -551,6 +551,7 @@
     Os::File::Status stat = this->fileModel->fileDesc.open(this->filename, Os::File::OPEN_READ);
     ASSERT_EQ(Os::File::OP_OK, stat);
 
+    this->fileModel->curPtr = 0;
     this->fileModel->mode = Os::Tester::FileModel::OPEN_READ;
 
   }
@@ -1497,7 +1498,10 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-      return true;
+      this->srcModel = const_cast<Os::Tester&>(state).getFileModel(this->srcFile);
+      this->destModel = const_cast<Os::Tester&>(state).getFileModel(this->destFile);
+
+      return (this->srcModel->mode == Os::Tester::FileModel::CLOSED);
   }
 
   
@@ -1505,9 +1509,14 @@
             Os::Tester& state //!< The test state
         ) 
   {
-      printf("--> Rule: %s \n", this->name);
+      printf("--> Rule: %s Copy %s to %s\n", this->name, this->srcFile, this->destFile);
       Os::FileSystem::Status stat = Os::FileSystem::copyFile(this->srcFile, this->destFile);
       ASSERT_EQ(Os::FileSystem::OP_OK, stat);
+
+      memcpy(this->destModel->buffOut, this->srcModel->buffOut, this->srcModel->size);
+      this->destModel->mode = Os::Tester::FileModel::CLOSED;
+      this->destModel->size = this->srcModel->size;
+      this->destModel->curPtr = 0;
 
   }
 
