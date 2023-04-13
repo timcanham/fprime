@@ -1,0 +1,31 @@
+@startuml SequenceDiagram
+skinparam Style strictuml
+skinparam participant {
+    BackgroundColor LightCyan
+    BorderColor Black
+}
+
+participant DataSender
+participant BufferSender
+participant GenericHub #Gold
+participant TransportDriver
+participant BufferManager
+
+== Component sends data ==
+DataSender --> GenericHub : portIn
+GenericHub --> BufferManager : dataOutAllocate
+GenericHub --> TransportDriver : dataOut
+== Component sends buffer ==
+BufferSender --> GenericHub : buffersIn
+GenericHub --> BufferManager : dataOutAllocate
+GenericHub --> TransportDriver : dataOut
+GenericHub --> BufferManager : bufferDeallocate
+== GenericHub receives data from Transport driver ==
+TransportDriver --> GenericHub : dataIn
+GenericHub --> DataSender : portOut
+GenericHub --> BufferManager : dataInDeallocate
+== GenericHub receives buffer from Transport driver ==
+TransportDriver --> GenericHub : dataIn
+GenericHub --> BufferSender : buffersOut
+
+@enduml
