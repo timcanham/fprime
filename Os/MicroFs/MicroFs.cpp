@@ -371,7 +371,7 @@ File::Status File::write(const void* buffer, NATIVE_INT_TYPE& size, bool waitFor
     } 
 
     // copy data to file buffer
-    memcpy(&state->data[state->loc], buffer, size);
+    (void)memcpy(&state->data[state->loc], buffer, size);
 
     // increment location
     state->loc += size;
@@ -654,6 +654,29 @@ Status removeFile(const char* path) {
 
 Status moveFile(const char* originPath, const char* destPath) {
 
+    Status copyStat = copyFile(originPath,destPath);
+    if (copyStat != OP_OK) {
+        return copyStat;
+    }
+
+    return removeFile(originPath);
+
+}
+
+Status handleFileError(File::Status fileStatus) {
+    Status fileSystemStatus = OTHER_ERROR;
+
+    return fileSystemStatus;
+}
+
+Status initAndCheckFileStats(const char* filePath, struct stat* fileInfo = nullptr) {
+    FileSystem::Status fs_status = OP_OK;
+
+    return fs_status;
+}
+
+Status copyFile(const char* originPath, const char* destPath) {
+
     if ((not originPath) or (not destPath)) {
         return INVALID_PATH;
     }
@@ -687,45 +710,71 @@ Status moveFile(const char* originPath, const char* destPath) {
         return BUSY;
     }
 
-    // move consists of copying source data/size to destination,
-    // and then deleting source
-
     // check sizes to see if going from a bigger slot to a 
     // smaller slot
 
-    memcpy(destState->data,origState->data,origState->currSize);
-    destState->currSize = origState->currSize;
-    // delete original
-    origState->currSize = -1;
-    origState->loc = -1;
+    FwNativeIntType copySize = (origState->currSize < destState->dataSize) ?
+        origState->currSize:destState->dataSize;
 
-    return OP_OK;
-
-}
-
-Status handleFileError(File::Status fileStatus) {
-    Status fileSystemStatus = OTHER_ERROR;
-
-    return fileSystemStatus;
-}
-
-Status initAndCheckFileStats(const char* filePath, struct stat* fileInfo = nullptr) {
-    FileSystem::Status fs_status = OP_OK;
-
-    return fs_status;
-}
-
-Status copyFileData(File source, File destination, FwSizeType size) {
-
-    return OP_OK;
-}
-
-Status copyFile(const char* originPath, const char* destPath) {
+    (void)memcpy(destState->data,origState->data,copySize);
+    destState->currSize = copySize;
 
     return OP_OK;
 }
 
 Status appendFile(const char* originPath, const char* destPath, bool createMissingDest) {
+
+    if ((not originPath) or (not destPath)) {
+        return INVALID_PATH;
+    }
+
+    // get file state
+    FwNativeIntType origIndex = getFileStateIndex(originPath);
+    if (origIndex == -1) {
+        return INVALID_PATH;
+    }
+
+    MicroFsFileState* origState = getFileStateFromIndex(origIndex);
+    FW_ASSERT(origState);
+
+    // get file state
+    FwNativeIntType destIndex = getFileStateIndex(destPath);
+    if (-1 == destIndex) {
+        return INVALID_PATH;
+    }
+
+    MicroFsFileState* destState = getFileStateFromIndex(destIndex);
+    FW_ASSERT(destState);
+
+    // make sure source exists
+    if (origState->currSize == -1) {
+        return INVALID_PATH;
+    }
+
+    // make sure destination exists if new file is not requested
+    if ((not createMissingDest) and (-1 == destState->currSize)) {
+        return INVALID_PATH;
+    }
+
+    // make sure neither is open so we don't corrupt operations
+    // in progress
+    if ((destState->loc != -1) or (origState->loc != -1)) {
+        return BUSY;
+    }
+
+    // initialize destination file if it hasn't been written yet
+    if (-1 == destState->currSize) {
+        destState->currSize = 0;
+    }
+
+    // check sizes to see if going from a bigger slot to a 
+    // smaller slot
+
+    FwNativeIntType copySize = (origState->currSize < (destState->dataSize-destState->currSize)) ?
+        origState->currSize:(destState->dataSize-destState->currSize);
+
+    (void)memcpy(&destState->data[destState->currSize],origState->data,copySize);
+    destState->currSize += copySize;
 
     return OP_OK;
 
