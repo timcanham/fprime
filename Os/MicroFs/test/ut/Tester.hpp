@@ -95,6 +95,7 @@ namespace Os {
       void CrcTest();
       void OffNominalTests();
       void CopyTest();
+      void AppendTest();
 
       // Helper functions
       void clearFileBuffer();

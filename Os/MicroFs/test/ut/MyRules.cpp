@@ -157,8 +157,7 @@
         ) 
   {
     this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-    return  ((fileModel->mode == Os::Tester::FileModel::OPEN_READ) ||
-             (fileModel->mode == Os::Tester::FileModel::OPEN_WRITE));
+    return  (fileModel->mode == Os::Tester::FileModel::OPEN_WRITE);
 
   }
 
@@ -325,7 +324,9 @@
         ) 
   {
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-      return (fileModel->mode != Os::Tester::FileModel::CLOSED);
+      return ((fileModel->mode != Os::Tester::FileModel::CLOSED) && 
+              (fileModel->mode != Os::Tester::FileModel::DOESNT_EXIST)); 
+      
   }
 
   
@@ -1541,7 +1542,10 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-      return true;
+      this->srcModel = const_cast<Os::Tester&>(state).getFileModel(this->srcFile);
+      this->destModel = const_cast<Os::Tester&>(state).getFileModel(this->destFile);
+      return ((this->srcModel->mode == Os::Tester::FileModel::CLOSED) &&
+              (this->destModel->mode == Os::Tester::FileModel::CLOSED));
   }
 
   
@@ -1549,9 +1553,19 @@
             Os::Tester& state //!< The test state
         ) 
   {
+      printf("--> Rule: %s Append %s to %s\n", this->name, this->srcFile, this->destFile);
       Os::FileSystem::Status stat = Os::FileSystem::appendFile(this->srcFile, this->destFile);
       ASSERT_EQ(Os::FileSystem::OP_OK, stat);
-      printf("--> Rule: %s \n", this->name);
+
+      I32 addSize = this->srcModel->size;
+      // If the size is going to overflow, then limit the addition size
+      if ((this->destModel->size + this->srcModel->size) > FILE_SIZE)
+      {
+        addSize = FILE_SIZE - this->destModel->size;
+      }
+
+      memcpy(this->destModel->buffOut + this->destModel->size, this->srcModel->buffOut, addSize);
+      this->destModel->size += addSize;
   }
 
 

@@ -93,6 +93,11 @@ TEST(FileOps, CopyTest) {
     tester.CopyTest();
 }
 
+TEST(FileOps, AppendTest) {
+    Os::Tester tester;
+    tester.AppendTest();
+}
+
 #endif
 
 
