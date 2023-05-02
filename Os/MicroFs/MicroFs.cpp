@@ -528,7 +528,7 @@ Status createDirectory(const char* path) {
     FW_ASSERT(MicroFsMem);
     MicroFsConfig *cfg = static_cast<MicroFsConfig*>(MicroFsMem);
 
-    if ((binIndex >= 0) and (binIndex < cfg->numBins)) {
+    if (binIndex < cfg->numBins) {
         return OP_OK;
     } else {
         return NO_PERMISSION;
