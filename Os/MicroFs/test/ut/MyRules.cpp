@@ -243,7 +243,6 @@
       NATIVE_INT_TYPE randSize = rand() % Tester::FILE_SIZE + 1;
 
       BYTE buffIn[state.testCfg.bins[0].fileSize];
-      NATIVE_INT_TYPE bufferSize = sizeof(buffIn);
       memset(buffIn,0xA5,sizeof(buffIn));
       ASSERT_LE(randSize, sizeof(buffIn));
       NATIVE_INT_TYPE retSize = randSize;
@@ -437,6 +436,8 @@
     FwSizeType free;
 
     FileSystem::Status stat = FileSystem::getFreeSpace("", total, free);
+    ASSERT_EQ(Os::File::OP_OK, stat);
+
     ASSERT_EQ(state.m_expFreeBytes,free);
     ASSERT_EQ(state.m_expTotalBytes,total);
 
@@ -508,10 +509,6 @@
       FwSizeType actualSize;
       FileSystem::Status stat = FileSystem::getFileSize(this->filename, actualSize);
       ASSERT_EQ(FileSystem::OP_OK, stat);
-
-      if (actualSize == -1) {
-        actualSize = 0;
-      }
 
       ASSERT_EQ(actualSize, this->fileModel->size);
       printf("--> Rule: %s %s, size = %d\n", this->name, this->filename, this->fileModel->size);

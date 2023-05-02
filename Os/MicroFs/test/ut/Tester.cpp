@@ -257,7 +257,6 @@ namespace Os {
     const U16 NumberFiles = 2;
 
     const char* File1 = "/bin0/file0";
-    const char* File2 = "/bin0/file1";
 
     clearFileBuffer();
 
@@ -305,7 +304,6 @@ namespace Os {
     const U16 NumberFiles = 2;
 
     const char* File1 = "/bin0/file0";
-    const char* File2 = "/bin0/file1";
 
     clearFileBuffer();
 
@@ -342,7 +340,6 @@ namespace Os {
     const U16 NumberFiles = 2;
 
     const char* File1 = "/bin0/file0";
-    const char* File2 = "/bin0/file1";
 
     clearFileBuffer();
 
@@ -403,7 +400,6 @@ namespace Os {
     Directory offNominalDir4("bin0", true);
     char dirName[MAX_BINS][20];
 
-    U16 binIndex =  0;
     for (U16 bin=0; bin < MAX_BINS; bin++)
     {
         snprintf(dirName[bin], 20, "/bin%d", bin);
@@ -506,7 +502,6 @@ namespace Os {
 
     const char* File1 = "/bin0/file0";
     const char* File2 = "/bin0/file1";
-    const char* CrcFile = "/bin0/file0.crc32";
 
     clearFileBuffer();
 
@@ -680,7 +675,6 @@ namespace Os {
 
     const char* File1 = "/bin0/file0";
 
-    const U16 TotalFiles = NumberBins * NumberFiles;
     clearFileBuffer();
 
     // Instantiate the Rules
