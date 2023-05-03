@@ -100,6 +100,10 @@
     ASSERT_EQ(Os::File::OP_OK, stat);
 
     this->fileModel->mode = Os::Tester::FileModel::OPEN_WRITE;
+    if (this->fileModel->size == -1)
+    {
+      this->fileModel->size = 0;
+    }
   }
 
 
@@ -551,6 +555,10 @@
 
     this->fileModel->curPtr = 0;
     this->fileModel->mode = Os::Tester::FileModel::OPEN_READ;
+    if (this->fileModel->size == -1)
+    {
+      this->fileModel->size = 0;
+    }
 
   }
 
@@ -701,6 +709,11 @@
     ASSERT_EQ(Os::File::OP_OK, stat);
 
     this->fileModel->mode = Os::Tester::FileModel::OPEN_WRITE;
+    if (this->fileModel->size == -1)
+    {
+      this->fileModel->size = 0;
+    }
+      
     this->fileModel->curPtr = this->fileModel->size;
 
   }
@@ -742,7 +755,7 @@
 
     this->fileModel->mode = Os::Tester::FileModel::DOESNT_EXIST;
     this->fileModel->curPtr = 0;
-    this->fileModel->size = 0;
+    this->fileModel->size = -1;
 
   }
 
@@ -872,7 +885,7 @@
       // Delete the original file
       this->sourceModel->mode = Os::Tester::FileModel::DOESNT_EXIST;
       this->sourceModel->curPtr = 0;
-      this->sourceModel->size = 0;
+      this->sourceModel->size = -1;
 
 
   }

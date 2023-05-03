@@ -27,7 +27,7 @@ namespace Os {
   Tester :: FileModel ::
       FileModel() : 
         mode(DOESNT_EXIST),
-        size(0)
+        size(-1)
   {
   }
 
@@ -35,7 +35,7 @@ namespace Os {
       clear()
   {
     this->curPtr = 0;
-    this->size = 0;
+    this->size = -1;
     memset(this->buffOut, 0xA5, FILE_SIZE);
   }
 

@@ -100,7 +100,6 @@ TEST(FileOps, AppendTest) {
 
 #endif
 
-
 #ifdef NUKE_TEST
 TEST(FileOps, NukeTest) {
     Os::Tester tester;
