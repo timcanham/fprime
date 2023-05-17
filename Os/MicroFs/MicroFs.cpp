@@ -782,6 +782,8 @@ Status appendFile(const char* originPath, const char* destPath, bool createMissi
 
 Status getFileSize(const char* path, FwSizeType& size) {
 
+    // initialize size
+    size = 0;
     // get file state
     FwNativeIntType index = getFileStateIndex(path);
     if (index == -1) {
