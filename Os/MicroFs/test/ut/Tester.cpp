@@ -419,6 +419,12 @@ namespace Os {
     offNominalDir3.apply(*this);
     offNominalDir4.apply(*this);
 
+    for (U16 i = 0; i < MAX_BINS; i++)
+    {
+      delete directories[i];
+    }
+
+
     cleanup.apply(*this);
   }
 
@@ -792,6 +798,16 @@ namespace Os {
       closeFile[i]->apply(*this);
     }
 
+    for (U16 i = 0; i < TotalFiles; i++)
+    {
+      delete openFile[i];
+    }
+
+    for (U16 i = 0; i < TotalFiles; i++)
+    {
+      delete closeFile[i];
+    }
+
     cleanup.apply(*this);
   }
 
@@ -957,6 +973,12 @@ namespace Os {
     }
 
     listings.apply(*this);
+
+    for (U16 i = 0; i < TotalFiles; i++)
+    {
+      delete openFile[i];
+    }
+
 
     cleanup.apply(*this);
     

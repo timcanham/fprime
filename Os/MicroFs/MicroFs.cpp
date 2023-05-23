@@ -130,8 +130,9 @@ getFileStateIndex(const char* fileName) {
 
     FwNativeUIntType binIndex;
     FwNativeUIntType fileIndex;
-    char crcExtension;
-    FwNativeIntType stat = sscanf(fileName,filePathSpec,&binIndex,&fileIndex,&crcExtension);
+    // crcExtension should be 2 bytes because scanf appends a null character at the end.
+    char crcExtension[2];
+    FwNativeIntType stat = sscanf(fileName,filePathSpec,&binIndex,&fileIndex,&crcExtension[0]);
     if (stat != 2) {
         return -1;
     }
