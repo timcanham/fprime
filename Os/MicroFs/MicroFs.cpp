@@ -664,18 +664,6 @@ Status moveFile(const char* originPath, const char* destPath) {
 
 }
 
-Status handleFileError(File::Status fileStatus) {
-    Status fileSystemStatus = OTHER_ERROR;
-
-    return fileSystemStatus;
-}
-
-Status initAndCheckFileStats(const char* filePath, struct stat* fileInfo = nullptr) {
-    FileSystem::Status fs_status = OP_OK;
-
-    return fs_status;
-}
-
 Status copyFile(const char* originPath, const char* destPath) {
 
     if ((not originPath) or (not destPath)) {
