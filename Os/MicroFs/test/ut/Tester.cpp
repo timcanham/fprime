@@ -50,6 +50,7 @@ namespace Os {
   {
     const U16 NumberBins = 10;
     const U16 NumberFiles = 10;
+    const U16 RandomIterations = 500;
 
     // Instantiate the rules
     InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
@@ -59,21 +60,27 @@ namespace Os {
     Cleanup cleanup;
 
     // Apply the rules
-    initFileSystem.apply(*this);
     
-    for(U32 i=0; i<NumberFiles*NumberBins; i++) {
-      openFile.apply(*this);
-    }
+    initFileSystem.apply(*this);
 
-    for(U32 i=0; i<NumberFiles*NumberBins; i++) {
-      closeFile.apply(*this);
-    }
-
-    openFile.apply(*this);
-    writeFile.apply(*this);
-    writeFile.apply(*this);
-    writeFile.apply(*this);
-    writeFile.apply(*this);
+    // Run the Rules randomly
+    STest::Rule<Tester>* rules[] = { 
+                                     &openFile,
+                                     &closeFile,
+                                     &writeFile
+                                  };
+    STest::RandomScenario<Tester> randomScenario(
+        "RandomScenario",
+        rules,
+        sizeof(rules) / sizeof(STest::Rule<Tester>*)
+    );
+    STest::BoundedScenario<Tester> boundedScenario(
+        "BoundedScenario",
+        randomScenario,
+        RandomIterations
+    );
+    const U32 numSteps = boundedScenario.run(*this);
+    ASSERT_EQ(RandomIterations, numSteps);
 
     cleanup.apply(*this);
 
