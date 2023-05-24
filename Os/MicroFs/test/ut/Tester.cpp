@@ -31,6 +31,7 @@ namespace Os {
   {
   }
 
+
   void Tester :: FileModel ::
       clear()
   {
@@ -44,6 +45,45 @@ namespace Os {
   // Tests
   // ----------------------------------------------------------------------
   
+  void Tester ::
+      NewTest()
+  {
+    const U16 NumberBins = 10;
+    const U16 NumberFiles = 10;
+
+    // Instantiate the rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenRandomFile openFile;
+    CloseRandomFile closeFile;
+    WriteRandomFile writeFile;
+    Cleanup cleanup;
+
+    // Apply the rules
+    initFileSystem.apply(*this);
+    
+    for(U32 i=0; i<NumberFiles*NumberBins; i++) {
+      openFile.apply(*this);
+    }
+
+    for(U32 i=0; i<NumberFiles*NumberBins; i++) {
+      closeFile.apply(*this);
+    }
+
+    openFile.apply(*this);
+    writeFile.apply(*this);
+    writeFile.apply(*this);
+    writeFile.apply(*this);
+    writeFile.apply(*this);
+
+    cleanup.apply(*this);
+
+  }
+
+
+
+
+
+
   // ----------------------------------------------------------------------
   // CopyTest
   // ----------------------------------------------------------------------
@@ -96,6 +136,33 @@ namespace Os {
   // ----------------------------------------------------------------------
   // AppendTest
   // ----------------------------------------------------------------------
+  void Tester ::
+      SimFileTest()
+  {
+
+
+    SimFileSystem fs(3, 4, 100);  // Initialize the file system with 3 bins and 4 files per bin
+
+    // Get the states of all files
+    fs.openFile();
+
+    std::unordered_map<std::string, SimFileSystem::FileState> fileStates = fs.getAllFileStates();
+    // Check the state of each file
+    for (const auto& fileStatePair : fileStates) {
+        std::string filePath = fileStatePair.first;
+        SimFileSystem::FileState state = fileStatePair.second;
+
+        if (state == SimFileSystem::FileState::DOES_NOT_EXIST) {
+            std::cout << "File " << filePath << " does not exist.\n";
+        } else if (state == SimFileSystem::FileState::CLOSED) {
+            std::cout << "File " << filePath << " is closed.\n";
+        } else if (state == SimFileSystem::FileState::OPENED) {
+            std::cout << "File " << filePath << " is open.\n";
+        }
+    }
+
+  }
+
   void Tester ::
       AppendTest()
   {

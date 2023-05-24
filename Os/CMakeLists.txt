@@ -124,6 +124,7 @@ set(UT_SOURCE_FILES
   "${CMAKE_CURRENT_LIST_DIR}/MicroFs/test/ut/MicroFsTest.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/MicroFs/test/ut/Tester.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/MicroFs/test/ut/MyRules.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/MicroFs/test/ut/SimFileSystem.cpp"
 )
 set (UT_MOD_DEPS STest)
 register_fprime_ut("Os_MicroFs")
