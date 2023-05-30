@@ -54,10 +54,9 @@
       state.fileModels[i].clear();
     }
 
+    state.simFileSystem = new SimFileSystem(this->numBins, this->numFiles, Tester::FILE_SIZE);
+
   }
-
-
-    
 
 
   // ------------------------------------------------------------------------------------------------------
@@ -76,12 +75,10 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-      
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
 
       return ((fileModel->mode == Os::Tester::FileModel::CLOSED) ||
               (fileModel->mode == Os::Tester::FileModel::DOESNT_EXIST));
-      
   }
 
   
@@ -89,6 +86,7 @@
             Os::Tester& state //!< The test state
         ) 
   {
+
     printf("--> Rule: %s %s\n", this->name, this->filename);
 
     this->fileModel->curPtr = 0;
@@ -100,6 +98,10 @@
     ASSERT_EQ(Os::File::OP_OK, stat);
 
     this->fileModel->mode = Os::Tester::FileModel::OPEN_WRITE;
+    if (this->fileModel->size == -1)
+    {
+      this->fileModel->size = 0;
+    }
   }
 
 
@@ -132,6 +134,7 @@
     printf("--> Rule: %s \n", this->name);
 
     Os::MicroFsCleanup(0,state.alloc);
+    delete state.simFileSystem;
 
   }
 
@@ -157,8 +160,7 @@
         ) 
   {
     this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-    return  ((fileModel->mode == Os::Tester::FileModel::OPEN_READ) ||
-             (fileModel->mode == Os::Tester::FileModel::OPEN_WRITE));
+    return  (fileModel->mode == Os::Tester::FileModel::OPEN_WRITE);
 
   }
 
@@ -244,7 +246,6 @@
       NATIVE_INT_TYPE randSize = rand() % Tester::FILE_SIZE + 1;
 
       BYTE buffIn[state.testCfg.bins[0].fileSize];
-      NATIVE_INT_TYPE bufferSize = sizeof(buffIn);
       memset(buffIn,0xA5,sizeof(buffIn));
       ASSERT_LE(randSize, sizeof(buffIn));
       NATIVE_INT_TYPE retSize = randSize;
@@ -325,7 +326,9 @@
         ) 
   {
       this->fileModel = const_cast<Os::Tester&>(state).getFileModel(this->filename);
-      return (fileModel->mode != Os::Tester::FileModel::CLOSED);
+      return ((fileModel->mode != Os::Tester::FileModel::CLOSED) && 
+              (fileModel->mode != Os::Tester::FileModel::DOESNT_EXIST)); 
+      
   }
 
   
@@ -436,6 +439,8 @@
     FwSizeType free;
 
     FileSystem::Status stat = FileSystem::getFreeSpace("", total, free);
+    ASSERT_EQ(Os::File::OP_OK, stat);
+
     ASSERT_EQ(state.m_expFreeBytes,free);
     ASSERT_EQ(state.m_expTotalBytes,total);
 
@@ -508,10 +513,6 @@
       FileSystem::Status stat = FileSystem::getFileSize(this->filename, actualSize);
       ASSERT_EQ(FileSystem::OP_OK, stat);
 
-      if (actualSize == -1) {
-        actualSize = 0;
-      }
-
       ASSERT_EQ(actualSize, this->fileModel->size);
       printf("--> Rule: %s %s, size = %d\n", this->name, this->filename, this->fileModel->size);
 
@@ -551,7 +552,12 @@
     Os::File::Status stat = this->fileModel->fileDesc.open(this->filename, Os::File::OPEN_READ);
     ASSERT_EQ(Os::File::OP_OK, stat);
 
+    this->fileModel->curPtr = 0;
     this->fileModel->mode = Os::Tester::FileModel::OPEN_READ;
+    if (this->fileModel->size == -1)
+    {
+      this->fileModel->size = 0;
+    }
 
   }
 
@@ -702,6 +708,11 @@
     ASSERT_EQ(Os::File::OP_OK, stat);
 
     this->fileModel->mode = Os::Tester::FileModel::OPEN_WRITE;
+    if (this->fileModel->size == -1)
+    {
+      this->fileModel->size = 0;
+    }
+      
     this->fileModel->curPtr = this->fileModel->size;
 
   }
@@ -743,7 +754,7 @@
 
     this->fileModel->mode = Os::Tester::FileModel::DOESNT_EXIST;
     this->fileModel->curPtr = 0;
-    this->fileModel->size = 0;
+    this->fileModel->size = -1;
 
   }
 
@@ -873,7 +884,7 @@
       // Delete the original file
       this->sourceModel->mode = Os::Tester::FileModel::DOESNT_EXIST;
       this->sourceModel->curPtr = 0;
-      this->sourceModel->size = 0;
+      this->sourceModel->size = -1;
 
 
   }
@@ -1497,7 +1508,10 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-      return true;
+      this->srcModel = const_cast<Os::Tester&>(state).getFileModel(this->srcFile);
+      this->destModel = const_cast<Os::Tester&>(state).getFileModel(this->destFile);
+
+      return (this->srcModel->mode == Os::Tester::FileModel::CLOSED);
   }
 
   
@@ -1505,9 +1519,14 @@
             Os::Tester& state //!< The test state
         ) 
   {
-      printf("--> Rule: %s \n", this->name);
+      printf("--> Rule: %s Copy %s to %s\n", this->name, this->srcFile, this->destFile);
       Os::FileSystem::Status stat = Os::FileSystem::copyFile(this->srcFile, this->destFile);
       ASSERT_EQ(Os::FileSystem::OP_OK, stat);
+
+      memcpy(this->destModel->buffOut, this->srcModel->buffOut, this->srcModel->size);
+      this->destModel->mode = Os::Tester::FileModel::CLOSED;
+      this->destModel->size = this->srcModel->size;
+      this->destModel->curPtr = 0;
 
   }
 
@@ -1532,7 +1551,10 @@
             const Os::Tester& state //!< The test state
         ) 
   {
-      return true;
+      this->srcModel = const_cast<Os::Tester&>(state).getFileModel(this->srcFile);
+      this->destModel = const_cast<Os::Tester&>(state).getFileModel(this->destFile);
+      return ((this->srcModel->mode == Os::Tester::FileModel::CLOSED) &&
+              (this->destModel->mode == Os::Tester::FileModel::CLOSED));
   }
 
   
@@ -1540,9 +1562,19 @@
             Os::Tester& state //!< The test state
         ) 
   {
+      printf("--> Rule: %s Append %s to %s\n", this->name, this->srcFile, this->destFile);
       Os::FileSystem::Status stat = Os::FileSystem::appendFile(this->srcFile, this->destFile);
       ASSERT_EQ(Os::FileSystem::OP_OK, stat);
-      printf("--> Rule: %s \n", this->name);
+
+      I32 addSize = this->srcModel->size;
+      // If the size is going to overflow, then limit the addition size
+      if ((this->destModel->size + this->srcModel->size) > FILE_SIZE)
+      {
+        addSize = FILE_SIZE - this->destModel->size;
+      }
+
+      memcpy(this->destModel->buffOut + this->destModel->size, this->srcModel->buffOut, addSize);
+      this->destModel->size += addSize;
   }
 
 
@@ -1723,6 +1755,125 @@
       FwSizeType actualSize;
       FileSystem::Status stat = FileSystem::getFileSize(this->filename, actualSize);
       ASSERT_EQ(FileSystem::INVALID_PATH, stat);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  OpenRandomFile
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::OpenRandomFile::OpenRandomFile() :
+        STest::Rule<Os::Tester>("OpenRandomFile")
+  {
+  }
+
+
+  bool Os::Tester::OpenRandomFile::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return state.simFileSystem->canOpenFile();
+
+  }
+
+  
+  void Os::Tester::OpenRandomFile::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      std::string filename = state.simFileSystem->openFile();
+      printf("--> Rule: %s %s\n", this->name, filename.c_str());
+
+      Os::File *filePtr = state.simFileSystem->getFileDesc(filename);
+      Os::File::Status stat = filePtr->open(filename.c_str(), Os::File::OPEN_WRITE); 
+      ASSERT_EQ(Os::File::OP_OK, stat);
+
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  CloseRandomFile
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::CloseRandomFile::CloseRandomFile() :
+        STest::Rule<Os::Tester>("CloseRandomFile")
+  {
+  }
+
+
+  bool Os::Tester::CloseRandomFile::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return state.simFileSystem->canCloseFile();
+
+  }
+
+  
+  void Os::Tester::CloseRandomFile::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      std::string filename = state.simFileSystem->closeFile();
+      printf("--> Rule: %s %s\n", this->name, filename.c_str());
+
+      Os::File *filePtr = state.simFileSystem->getFileDesc(filename);
+      filePtr->close(); 
+  }
+
+
+    
+
+
+  // ------------------------------------------------------------------------------------------------------
+  // Rule:  WriteRandomFile
+  //
+  // ------------------------------------------------------------------------------------------------------
+  
+  Os::Tester::WriteRandomFile::WriteRandomFile() :
+        STest::Rule<Os::Tester>("WriteRandomFile")
+  {
+  }
+
+
+  bool Os::Tester::WriteRandomFile::precondition(
+            const Os::Tester& state //!< The test state
+        ) 
+  {
+      return state.simFileSystem->canWriteFile();
+  }
+
+  
+  void Os::Tester::WriteRandomFile::action(
+            Os::Tester& state //!< The test state
+        ) 
+  {
+      std::vector<uint8_t> vbytes;
+
+      // Randomize how many bytes are written to the file
+      NATIVE_INT_TYPE fillSize = rand() % Tester::FILE_SIZE + 1;
+      
+      // Fill the memory buffer with random numbers between 0 and 0xFF inclusive
+      for (NATIVE_INT_TYPE i=0; i < fillSize; i++) {
+        vbytes.push_back(rand() % 256);
+      }
+
+      std::string filename = state.simFileSystem->writeToFile(vbytes);
+      printf("--> Rule: %s %s %d bytes\n", this->name, filename.c_str(), fillSize);
+
+      Os::File *filePtr = state.simFileSystem->getFileDesc(filename);
+      Os::File::Status stat = filePtr->write(vbytes.data(), fillSize);
+      ASSERT_EQ(stat, Os::File::OP_OK);
+
 
   }
 

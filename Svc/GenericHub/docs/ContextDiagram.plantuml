@@ -1,0 +1,29 @@
+@startuml ContextDiagram
+left to right direction
+' Horizontal lines: -->, <--, <-->
+' Vertical lines: ->, <-, <->
+
+title Svc::GenericHub
+skinparam component {
+    BackgroundColor LightCyan
+    BorderColor Black
+}
+
+
+component [DataSender]
+component [BufferSender]
+component [GenericHub] #Gold
+component [TransportDriver]
+component [BufferManager]
+
+GenericHub --> TransportDriver : dataOut
+TransportDriver --> GenericHub : dataIn
+DataSender --> GenericHub : portIn
+GenericHub --> DataSender : portOut
+GenericHub --> BufferManager : dataOutAllocate
+GenericHub --> BufferManager : dataInDeallocate
+BufferSender --> GenericHub : buffersIn
+GenericHub --> BufferSender : buffersOut
+GenericHub --> BufferManager : bufferDeallocate
+
+@enduml

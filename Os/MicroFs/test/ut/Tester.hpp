@@ -12,6 +12,9 @@
 #include <Os/MicroFs/MicroFs.hpp>
 #include <Fw/Types/MallocAllocator.hpp>
 
+#include "SimFileSystem.h"
+
+
 
 #include "RulesHeaders.hpp"
 
@@ -65,6 +68,7 @@ namespace Os {
       ~Tester();
 
       FileModel fileModels[MAX_TOTAL_FILES];
+      SimFileSystem *simFileSystem;
 
       Fw::MallocAllocator alloc;
       Os::MicroFsConfig testCfg;
@@ -94,6 +98,10 @@ namespace Os {
       void BulkTest();
       void CrcTest();
       void OffNominalTests();
+      void CopyTest();
+      void AppendTest();
+      void SimFileTest();
+      void NewTest();
 
       // Helper functions
       void clearFileBuffer();

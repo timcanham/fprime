@@ -27,15 +27,16 @@ namespace Os {
   Tester :: FileModel ::
       FileModel() : 
         mode(DOESNT_EXIST),
-        size(0)
+        size(-1)
   {
   }
+
 
   void Tester :: FileModel ::
       clear()
   {
     this->curPtr = 0;
-    this->size = 0;
+    this->size = -1;
     memset(this->buffOut, 0xA5, FILE_SIZE);
   }
 
@@ -44,6 +45,183 @@ namespace Os {
   // Tests
   // ----------------------------------------------------------------------
   
+  void Tester ::
+      NewTest()
+  {
+    const U16 NumberBins = 10;
+    const U16 NumberFiles = 10;
+    const U16 RandomIterations = 500;
+
+    // Instantiate the rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenRandomFile openFile;
+    CloseRandomFile closeFile;
+    WriteRandomFile writeFile;
+    Cleanup cleanup;
+
+    // Apply the rules
+    
+    initFileSystem.apply(*this);
+
+    // Run the Rules randomly
+    STest::Rule<Tester>* rules[] = { 
+                                     &openFile,
+                                     &closeFile,
+                                     &writeFile
+                                  };
+    STest::RandomScenario<Tester> randomScenario(
+        "RandomScenario",
+        rules,
+        sizeof(rules) / sizeof(STest::Rule<Tester>*)
+    );
+    STest::BoundedScenario<Tester> boundedScenario(
+        "BoundedScenario",
+        randomScenario,
+        RandomIterations
+    );
+    const U32 numSteps = boundedScenario.run(*this);
+    ASSERT_EQ(RandomIterations, numSteps);
+
+    cleanup.apply(*this);
+
+  }
+
+
+
+
+
+
+  // ----------------------------------------------------------------------
+  // CopyTest
+  // ----------------------------------------------------------------------
+  void Tester ::
+      CopyTest()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file0";
+    const char* File2 = "/bin0/file1";
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenFile openFile1(File1);
+    OpenFile openFile2(File2);
+    OpenRead openRead1(File1);
+    OpenRead openRead2(File2);
+    WriteData writeData(File1);
+    CheckFileSize checkFileSize1(File1);
+    CheckFileSize checkFileSize2(File2);
+    CalcCRC32 calcCRC32(File1);
+    ReadData readData1(File1);
+    ReadData readData2(File2);
+    CloseFile closeFile(File1);
+    CopyFile copyFile(File1, File2);
+    ResetFile resetFile1(File1);
+    ResetFile resetFile2(File2);
+
+    Cleanup cleanup;
+
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openFile1.apply(*this);
+    writeData.apply(*this);
+    closeFile.apply(*this);
+    copyFile.apply(*this);
+    checkFileSize1.apply(*this);
+    checkFileSize2.apply(*this);
+    openRead1.apply(*this);
+    readData1.apply(*this);
+    openRead2.apply(*this);
+    readData2.apply(*this);
+    cleanup.apply(*this);
+
+  }
+  // ----------------------------------------------------------------------
+  // AppendTest
+  // ----------------------------------------------------------------------
+  void Tester ::
+      SimFileTest()
+  {
+
+
+    SimFileSystem fs(3, 4, 100);  // Initialize the file system with 3 bins and 4 files per bin
+
+    // Get the states of all files
+    fs.openFile();
+
+    std::unordered_map<std::string, SimFileSystem::FileState> fileStates = fs.getAllFileStates();
+    // Check the state of each file
+    for (const auto& fileStatePair : fileStates) {
+        std::string filePath = fileStatePair.first;
+        SimFileSystem::FileState state = fileStatePair.second;
+
+        if (state == SimFileSystem::FileState::DOES_NOT_EXIST) {
+            std::cout << "File " << filePath << " does not exist.\n";
+        } else if (state == SimFileSystem::FileState::CLOSED) {
+            std::cout << "File " << filePath << " is closed.\n";
+        } else if (state == SimFileSystem::FileState::OPENED) {
+            std::cout << "File " << filePath << " is open.\n";
+        }
+    }
+
+  }
+
+  void Tester ::
+      AppendTest()
+  {
+    const U16 NumberBins = 1;
+    const U16 NumberFiles = 2;
+
+    const char* File1 = "/bin0/file0";
+    const char* File2 = "/bin0/file1";
+
+    clearFileBuffer();
+
+    // Instantiate the Rules
+    InitFileSystem initFileSystem(NumberBins, FILE_SIZE, NumberFiles);
+    OpenFile openFile1(File1);
+    OpenFile openFile2(File2);
+    OpenRead openRead1(File1);
+    OpenRead openRead2(File2);
+    WriteData writeData1(File1);
+    WriteData writeData2(File2);
+    CheckFileSize checkFileSize1(File1);
+    CheckFileSize checkFileSize2(File2);
+    CalcCRC32 calcCRC32(File1);
+    ReadData readData1(File1);
+    ReadData readData2(File2);
+    CloseFile closeFile1(File1);
+    CloseFile closeFile2(File2);
+    AppendFile appendFile(File1, File2);
+    ResetFile resetFile1(File1);
+    ResetFile resetFile2(File2);
+
+    Cleanup cleanup;
+
+
+    // Run the Rules
+    initFileSystem.apply(*this);
+    openFile1.apply(*this);
+    writeData1.apply(*this);
+    closeFile1.apply(*this);
+    openFile2.apply(*this);
+    writeData2.apply(*this);
+    closeFile2.apply(*this);
+    appendFile.apply(*this);
+    checkFileSize1.apply(*this);
+    checkFileSize2.apply(*this);
+    openRead1.apply(*this);
+    readData1.apply(*this);
+    openRead2.apply(*this);
+    readData2.apply(*this);
+    cleanup.apply(*this);
+
+  }
+
   // ----------------------------------------------------------------------
   // OffNominalTests
   // ----------------------------------------------------------------------
@@ -130,9 +308,6 @@ namespace Os {
     flushFile.apply(*this);
     getErrors.apply(*this);
 
-    copyFile.apply(*this);
-    appendFile.apply(*this);
-
     readDirInvalid.apply(*this);
     readDirInvalid2.apply(*this);
     readDirInvalid3.apply(*this);
@@ -156,7 +331,6 @@ namespace Os {
     const U16 NumberFiles = 2;
 
     const char* File1 = "/bin0/file0";
-    const char* File2 = "/bin0/file1";
 
     clearFileBuffer();
 
@@ -204,7 +378,6 @@ namespace Os {
     const U16 NumberFiles = 2;
 
     const char* File1 = "/bin0/file0";
-    const char* File2 = "/bin0/file1";
 
     clearFileBuffer();
 
@@ -241,7 +414,6 @@ namespace Os {
     const U16 NumberFiles = 2;
 
     const char* File1 = "/bin0/file0";
-    const char* File2 = "/bin0/file1";
 
     clearFileBuffer();
 
@@ -302,7 +474,6 @@ namespace Os {
     Directory offNominalDir4("bin0", true);
     char dirName[MAX_BINS][20];
 
-    U16 binIndex =  0;
     for (U16 bin=0; bin < MAX_BINS; bin++)
     {
         snprintf(dirName[bin], 20, "/bin%d", bin);
@@ -321,6 +492,12 @@ namespace Os {
     offNominalDir2.apply(*this);
     offNominalDir3.apply(*this);
     offNominalDir4.apply(*this);
+
+    for (U16 i = 0; i < MAX_BINS; i++)
+    {
+      delete directories[i];
+    }
+
 
     cleanup.apply(*this);
   }
@@ -386,7 +563,6 @@ namespace Os {
     moveInvalid4.apply(*this);
 
     openFile.apply(*this);
-    closeFile2.apply(*this);
     moveBusy.apply(*this);
 
     closeFile.apply(*this);
@@ -406,7 +582,6 @@ namespace Os {
 
     const char* File1 = "/bin0/file0";
     const char* File2 = "/bin0/file1";
-    const char* CrcFile = "/bin0/file0.crc32";
 
     clearFileBuffer();
 
@@ -476,9 +651,11 @@ namespace Os {
 
     CheckFileSize checkFileSize(File1);
 
-    OpenRead openRead(File1);
+    OpenRead openRead1(File1);
+    OpenRead openRead2(File2);
     Cleanup cleanup;
     ResetFile resetFile(File1);
+    AppendFile appendFile(File1, File2);
 
     OpenCreate openCreate(File1);
     OpenAppend openAppend(File1);
@@ -494,6 +671,9 @@ namespace Os {
     // Run the Rules randomly
     STest::Rule<Tester>* rules[] = { 
                                      &openFile,
+                                     &appendFile,
+                                     &openRead1,
+                                     &openRead2,
                                      &isFileOpen,
                                      &openCreate,
                                      &openAppend,
@@ -575,7 +755,6 @@ namespace Os {
 
     const char* File1 = "/bin0/file0";
 
-    const U16 TotalFiles = NumberBins * NumberFiles;
     clearFileBuffer();
 
     // Instantiate the Rules
@@ -691,6 +870,16 @@ namespace Os {
     {
       closeFile[i] = new CloseFile(fileName[i]);
       closeFile[i]->apply(*this);
+    }
+
+    for (U16 i = 0; i < TotalFiles; i++)
+    {
+      delete openFile[i];
+    }
+
+    for (U16 i = 0; i < TotalFiles; i++)
+    {
+      delete closeFile[i];
     }
 
     cleanup.apply(*this);
@@ -858,6 +1047,12 @@ namespace Os {
     }
 
     listings.apply(*this);
+
+    for (U16 i = 0; i < TotalFiles; i++)
+    {
+      delete openFile[i];
+    }
+
 
     cleanup.apply(*this);
     

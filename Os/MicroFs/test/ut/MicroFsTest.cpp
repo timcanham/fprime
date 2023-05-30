@@ -10,6 +10,8 @@
 #define FULL_TEST
 #define NUKE_TEST
 #define OFF_NOMINAL
+#define NEW_TEST
+//#define SIM_FILE_TEST
 
 #ifdef FULL_TEST
 
@@ -88,8 +90,17 @@ TEST(FileOps, OddTests) {
     tester.OddTests();
 }
 
-#endif
+TEST(FileOps, CopyTest) {
+    Os::Tester tester;
+    tester.CopyTest();
+}
 
+TEST(FileOps, AppendTest) {
+    Os::Tester tester;
+    tester.AppendTest();
+}
+
+#endif
 
 #ifdef NUKE_TEST
 TEST(FileOps, NukeTest) {
@@ -102,6 +113,20 @@ TEST(FileOps, NukeTest) {
 TEST(FileOps, OffNominalTests) {
     Os::Tester tester;
     tester.OffNominalTests();
+}
+#endif
+
+#ifdef SIM_FILE_TEST
+TEST(FileOps, SimFileTest) {
+    Os::Tester tester;
+    tester.SimFileTest();
+}
+#endif
+
+#ifdef NEW_TEST
+TEST(FileOps, NewTest) {
+    Os::Tester tester;
+    tester.NewTest();
 }
 #endif
 

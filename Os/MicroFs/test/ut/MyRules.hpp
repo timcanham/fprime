@@ -1228,6 +1228,9 @@
 
             const char* srcFile;
             const char* destFile;
+            Os::Tester::FileModel *srcModel;
+            Os::Tester::FileModel *destModel;
+
 
     };
 
@@ -1264,6 +1267,9 @@
 
             const char* srcFile;
             const char* destFile;
+            Os::Tester::FileModel *srcModel;
+            Os::Tester::FileModel *destModel;
+
 
 
     };
@@ -1444,6 +1450,105 @@
             );
 
             const char* filename;
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  OpenRandomFile
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct OpenRandomFile : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            OpenRandomFile();
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  CloseRandomFile
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct CloseRandomFile : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            CloseRandomFile();
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
+
+    };
+
+    
+
+
+
+    // ------------------------------------------------------------------------------------------------------
+    // Rule:  WriteRandomFile
+    //
+    // ------------------------------------------------------------------------------------------------------
+    struct WriteRandomFile : public STest::Rule<Os::Tester> {
+
+            // ----------------------------------------------------------------------
+            // Construction
+            // ----------------------------------------------------------------------
+
+            //! Constructor
+            WriteRandomFile();
+
+            // ----------------------------------------------------------------------
+            // Public member functions
+            // ----------------------------------------------------------------------
+
+            //! Precondition
+            bool precondition(
+                const Os::Tester& state //!< The test state
+            );
+
+            //! Action
+            void action(
+                Os::Tester& state //!< The test state
+            );
 
     };
 

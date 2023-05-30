@@ -99,8 +99,10 @@ struct MicroFsBin {
 
 struct MicroFsConfig {
     FwNativeUIntType numBins;           //!< The number of bins configured. Must be <= than MAX_MICROFS_BINS
+    FwNativeUIntType filler;            //!< filler bytes to ensure 8 byte alignment of this data structure
     MicroFsBin bins[MAX_MICROFS_BINS];  //!< The bins containing file sizes and numbers of files
 };
+static_assert(sizeof(MicroFsConfig) % 8 == 0, "Size of MicroFsConfig is not divisible by 8");
 
 //!< set the number of bins in config
 void MicroFsSetCfgBins(MicroFsConfig& cfg, const FwNativeUIntType numBins);

@@ -23,6 +23,12 @@ It is also essential that users never pass a **pointer** into the generic hub, a
 leaves the current address space. A sample configuration is shown below. Finally, the generic hub is bidirectional, so it
 can operate on inputs and produce outputs as long as its remote counterpart is hooked up in parallel.
 
+### Context Diagram
+![Context Diagram](ContextDiagram.png)
+
+### Sequence Diagram
+![Sequence Diagram](SequenceDiagram.png)
+
 ### Example Formations
 
 This section shows how to set up the generic hub component. It is broken into several separate views. This first shows
