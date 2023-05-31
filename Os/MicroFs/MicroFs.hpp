@@ -94,21 +94,22 @@ namespace Os {
 
 struct MicroFsBin {
     FwSizeType fileSize;  //<! The size of the files in the bin
-    FwNativeUIntType numFiles;  //<! The number of files in the bin
+    FwSizeType numFiles;  //<! The number of files in the bin
 };
 
 struct MicroFsConfig {
-    FwNativeUIntType numBins;           //!< The number of bins configured. Must be <= than MAX_MICROFS_BINS
-    FwNativeUIntType filler;            //!< filler bytes to ensure 8 byte alignment of this data structure
+    FwSizeType numBins;           //!< The number of bins configured. Must be <= than MAX_MICROFS_BINS
     MicroFsBin bins[MAX_MICROFS_BINS];  //!< The bins containing file sizes and numbers of files
 };
-static_assert(sizeof(MicroFsConfig) % 8 == 0, "Size of MicroFsConfig is not divisible by 8");
+
+// The allocator must align memory correctly for the MicroFsBin struct
+static const NATIVE_UINT_TYPE MICROFS_ALIGNMENT = sizeof(MicroFsBin);
 
 //!< set the number of bins in config
-void MicroFsSetCfgBins(MicroFsConfig& cfg, const FwNativeUIntType numBins);
+void MicroFsSetCfgBins(MicroFsConfig& cfg, const FwSizeType numBins);
 
 //!< add a bin to the config
-void MicroFsAddBin(MicroFsConfig& cfg, const FwNativeUIntType binIndex, const FwSizeType fileSize, const FwNativeUIntType numFiles);
+void MicroFsAddBin(MicroFsConfig& cfg, const FwIndexType binIndex, const FwSizeType fileSize, const FwSizeType numFiles);
 
 //!< initialize MicroFs memory by passing the configuration, a memory id (if needed), and a memory allocator
 

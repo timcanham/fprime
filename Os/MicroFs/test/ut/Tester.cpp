@@ -2,7 +2,7 @@
 #include "Tester.hpp"
 #include <stdio.h>
 #include <Fw/Test/UnitTest.hpp>
-#include <Fw/Types/MallocAllocator.hpp>
+#include <Fw/Types/AlignedAllocator.hpp>
 #include <Fw/Types/Assert.hpp>
 
 
@@ -14,7 +14,7 @@ namespace Os {
   // ----------------------------------------------------------------------
 
   Tester ::
-    Tester()
+    Tester() : alloc(Os::MICROFS_ALIGNMENT)
   {
     srand(time(NULL));
   }

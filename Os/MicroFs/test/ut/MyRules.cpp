@@ -4,7 +4,7 @@
 #include <Os/File.hpp>
 #include <Os/FileSystem.hpp>
 #include <Os/MicroFs/MicroFs.hpp>
-#include <Fw/Types/MallocAllocator.hpp>
+#include <Fw/Types/AlignedAllocator.hpp>
 #include <Fw/Test/UnitTest.hpp>
 
 

@@ -10,7 +10,7 @@
 #include <Os/File.hpp>
 #include <Os/FileSystem.hpp>
 #include <Os/MicroFs/MicroFs.hpp>
-#include <Fw/Types/MallocAllocator.hpp>
+#include <Fw/Types/AlignedAllocator.hpp>
 
 #include "SimFileSystem.h"
 
@@ -70,7 +70,7 @@ namespace Os {
       FileModel fileModels[MAX_TOTAL_FILES];
       SimFileSystem *simFileSystem;
 
-      Fw::MallocAllocator alloc;
+      Fw::AlignedAllocator alloc;
       Os::MicroFsConfig testCfg;
 
     public:

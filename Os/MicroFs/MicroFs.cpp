@@ -22,24 +22,24 @@ extern "C" {
 namespace Os {
 
 struct MicroFsFileState {
-    FwNativeIntType loc;       //!< location in file where last operation left off
-    FwNativeIntType currSize;  //!< current size of the file after writes were done
-    FwNativeIntType dataSize;  //!< alloted size of the file
+    FwIndexType loc;       //!< location in file where last operation left off
+    FwSizeType currSize;  //!< current size of the file after writes were done
+    FwSizeType dataSize;  //!< alloted size of the file
     BYTE* data;                //!< location of file data
 };
 
 STATIC void* MicroFsMem = 0;
 // offset from zero for fds to allow zero checks
-STATIC const FwNativeUIntType MICROFS_FD_OFFSET = 1;
+STATIC const FwSizeType MICROFS_FD_OFFSET = 1;
 
 //!< set the number of bins in config
-void MicroFsSetCfgBins(MicroFsConfig& cfg, const FwNativeUIntType numBins) {
+void MicroFsSetCfgBins(MicroFsConfig& cfg, const FwSizeType numBins) {
     FW_ASSERT(numBins <= MAX_MICROFS_BINS,numBins);
     cfg.numBins = numBins;
 }
 
 //!< add a bin to the config
-void MicroFsAddBin(MicroFsConfig& cfg, const FwNativeUIntType binIndex, const FwSizeType fileSize, const FwNativeUIntType numFiles) {
+void MicroFsAddBin(MicroFsConfig& cfg, const FwIndexType binIndex, const FwSizeType fileSize, const FwSizeType numFiles) {
     FW_ASSERT(binIndex <= MAX_MICROFS_BINS,binIndex);
     cfg.bins[binIndex].fileSize = fileSize;
     cfg.bins[binIndex].numFiles = numFiles;
@@ -55,10 +55,10 @@ void MicroFsInit(const MicroFsConfig& cfg, const FwNativeUIntType id, Fw::MemAll
     // and data
 
     // initialize it to the config struct size
-    FwNativeUIntType memSize = sizeof(MicroFsConfig);
-    FwNativeUIntType totalNumFiles = 0;
+    FwSizeType memSize = sizeof(MicroFsConfig);
+    FwSizeType totalNumFiles = 0;
     // iterate through the bins
-    for (FwNativeUIntType bin = 0; bin < cfg.numBins; bin++) {
+    for (FwIndexType bin = 0; bin < cfg.numBins; bin++) {
         // memory per file needed is struct for file state + file buffer size
         memSize += cfg.bins[bin].numFiles * (sizeof(MicroFsFileState) + cfg.bins[bin].fileSize);
         totalNumFiles += cfg.bins[bin].numFiles;
@@ -66,12 +66,15 @@ void MicroFsInit(const MicroFsConfig& cfg, const FwNativeUIntType id, Fw::MemAll
 
     // request the memory
     FwNativeUIntType reqMem = memSize;
+    // round up the size to the next alignment boundary
+    reqMem += (reqMem % MICROFS_ALIGNMENT);
+
     bool dontcare;
     MicroFsMem = allocator.allocate(id, reqMem, dontcare);
 
     // make sure got the amount requested.
     // improvement could be best effort based on received memory
-    FW_ASSERT(reqMem == memSize, reqMem, memSize);
+    FW_ASSERT(reqMem >= memSize, reqMem, memSize);
     // make sure we got a non-null pointer
     FW_ASSERT(MicroFsMem);
 
@@ -85,8 +88,8 @@ void MicroFsInit(const MicroFsConfig& cfg, const FwNativeUIntType id, Fw::MemAll
     // point to memory after state structs for beginning of file data
     BYTE* currFileBuff = reinterpret_cast<BYTE*>(&statePtr[totalNumFiles]);
     // fill in the file state structs
-    for (FwNativeUIntType bin = 0; bin < cfg.numBins; bin++) {
-        for (FwNativeUIntType file = 0; file < cfg.bins[bin].numFiles; file++) {
+    for (FwIndexType bin = 0; bin < cfg.numBins; bin++) {
+        for (FwIndexType file = 0; file < cfg.bins[bin].numFiles; file++) {
             // clear state structure memory
             memset(statePtr, 0, sizeof(MicroFsFileState));
             // initialize state
@@ -113,7 +116,7 @@ void MicroFsCleanup(const FwNativeUIntType id,
 }
 
 // helper to find file state entry from file name. Will return index if found, -1 if not
-STATIC FwNativeIntType 
+STATIC FwIndexType 
 getFileStateIndex(const char* fileName) {
     // the directory/filename rule is very strict - it has to be /MICROFS_BIN_STRING<n>/MICROFS_FILE_STRING<m>,
     // where n = number of file bins, and m = number of files in a particular bin
@@ -128,8 +131,8 @@ getFileStateIndex(const char* fileName) {
         MICROFS_FILE_STRING 
         "%d.%1s";
 
-    FwNativeUIntType binIndex;
-    FwNativeUIntType fileIndex;
+    FwIndexType binIndex;
+    FwIndexType fileIndex;
     // crcExtension should be 2 bytes because scanf appends a null character at the end.
     char crcExtension[2];
     FwNativeIntType stat = sscanf(fileName,filePathSpec,&binIndex,&fileIndex,&crcExtension[0]);
@@ -150,11 +153,11 @@ getFileStateIndex(const char* fileName) {
         return -1;
     }    
 
-    FwNativeUIntType stateIndex = 0;
+    FwIndexType stateIndex = 0;
     // compute file state index
 
     // add each chunk of file numbers from full bins
-    for (FwNativeUIntType currBin = 0; currBin < binIndex; currBin++) {
+    for (FwIndexType currBin = 0; currBin < binIndex; currBin++) {
         stateIndex += cfgPtr->bins[currBin].numFiles;
     }
 
@@ -165,7 +168,7 @@ getFileStateIndex(const char* fileName) {
 }
 
 // helper to get state pointer from index
-STATIC MicroFsFileState* getFileStateFromIndex(FwNativeIntType index) {
+STATIC MicroFsFileState* getFileStateFromIndex(FwIndexType index) {
     // should be >=0 by the time this is called
     FW_ASSERT(index >= 0, index);
     FW_ASSERT(MicroFsMem);
@@ -191,7 +194,7 @@ File::Status File::open(const char* fileName, File::Mode mode, bool include_excl
 
     // common checks
     // retrieve index to file entry
-    FwNativeIntType entry = getFileStateIndex(fileName);
+    FwIndexType entry = getFileStateIndex(fileName);
     // not found
     if (-1 == entry) {
         return File::Status::DOESNT_EXIST;
@@ -273,7 +276,7 @@ File::Status File::seek(NATIVE_INT_TYPE offset, bool absolute) {
     MicroFsFileState* state = getFileStateFromIndex(this->m_fd - MICROFS_FD_OFFSET);
     FW_ASSERT(state);
 
-    FwNativeIntType oldSize = state->currSize; 
+    FwSizeType oldSize = state->currSize; 
 
     // compute new operation location
     if (absolute) {
@@ -517,7 +520,7 @@ Status createDirectory(const char* path) {
     // if the directory number can be scanned out following the directory path spec,
     // the directory name has the correct format
 
-    FwNativeUIntType binIndex = 0;
+    FwIndexType binIndex = 0;
 
     FwNativeUIntType stat = sscanf(path,dirPathSpec,&binIndex);
     if (stat != 1) {
@@ -559,7 +562,7 @@ Status readDirectory(const char* path, const U32 maxNum, Fw::String fileArray[],
             return INVALID_PATH;
         }
         // Add directory names based on number of bins
-        for (FwNativeUIntType bin = 0; bin < cfg->numBins; bin++) {
+        for (FwIndexType bin = 0; bin < cfg->numBins; bin++) {
             // make sure we haven't exceeded provided array size
             if (bin >= maxNum) {
                 return OP_OK;
@@ -584,7 +587,7 @@ Status readDirectory(const char* path, const U32 maxNum, Fw::String fileArray[],
     // if the directory number can be scanned out following the directory path spec,
     // the directory name has the correct format
 
-    FwNativeUIntType binIndex = 0;
+    FwIndexType binIndex = 0;
 
     // verify in the range of bins
     FwNativeUIntType stat = sscanf(path,dirPathSpec,&binIndex);
@@ -594,7 +597,7 @@ Status readDirectory(const char* path, const U32 maxNum, Fw::String fileArray[],
 
     // get set of files in the bin directory
     Fw::String fileStr;
-    for (FwNativeUIntType entry = 0; entry < cfg->bins[binIndex].numFiles; entry++) {
+    for (FwIndexType entry = 0; entry < cfg->bins[binIndex].numFiles; entry++) {
 
         // make sure we haven't exceeded provided array size
         if (entry >= maxNum) {
@@ -609,7 +612,7 @@ Status readDirectory(const char* path, const U32 maxNum, Fw::String fileArray[],
 
         fileStr.format(filePathSpec,binIndex,entry);
         // get file state
-        FwNativeIntType fileIndex = Os::getFileStateIndex(fileStr.toChar());
+        FwIndexType fileIndex = Os::getFileStateIndex(fileStr.toChar());
         // should always find it, since it is from a known valid bin
         FW_ASSERT(fileIndex != -1);
         MicroFsFileState* fState = getFileStateFromIndex(fileIndex);
@@ -633,7 +636,7 @@ Status removeFile(const char* path) {
     }
 
     // get file state
-    FwNativeIntType index = getFileStateIndex(path);
+    FwIndexType index = getFileStateIndex(path);
     if (index == -1) {
         return INVALID_PATH;
     }
@@ -671,7 +674,7 @@ Status copyFile(const char* originPath, const char* destPath) {
     }
 
     // get file state
-    FwNativeIntType origIndex = getFileStateIndex(originPath);
+    FwIndexType origIndex = getFileStateIndex(originPath);
     if (origIndex == -1) {
         return INVALID_PATH;
     }
@@ -680,7 +683,7 @@ Status copyFile(const char* originPath, const char* destPath) {
     FW_ASSERT(origState);
 
     // get file state
-    FwNativeIntType destIndex = getFileStateIndex(destPath);
+    FwIndexType destIndex = getFileStateIndex(destPath);
     if (-1 == destIndex) {
         return INVALID_PATH;
     }
@@ -702,7 +705,7 @@ Status copyFile(const char* originPath, const char* destPath) {
     // check sizes to see if going from a bigger slot to a 
     // smaller slot
 
-    FwNativeIntType copySize = (origState->currSize < destState->dataSize) ?
+    FwSizeType copySize = (origState->currSize < destState->dataSize) ?
         origState->currSize:destState->dataSize;
 
     (void)memcpy(destState->data,origState->data,copySize);
@@ -718,7 +721,7 @@ Status appendFile(const char* originPath, const char* destPath, bool createMissi
     }
 
     // get file state
-    FwNativeIntType origIndex = getFileStateIndex(originPath);
+    FwIndexType origIndex = getFileStateIndex(originPath);
     if (origIndex == -1) {
         return INVALID_PATH;
     }
@@ -727,7 +730,7 @@ Status appendFile(const char* originPath, const char* destPath, bool createMissi
     FW_ASSERT(origState);
 
     // get file state
-    FwNativeIntType destIndex = getFileStateIndex(destPath);
+    FwIndexType destIndex = getFileStateIndex(destPath);
     if (-1 == destIndex) {
         return INVALID_PATH;
     }
@@ -759,7 +762,7 @@ Status appendFile(const char* originPath, const char* destPath, bool createMissi
     // check sizes to see if going from a bigger slot to a 
     // smaller slot
 
-    FwNativeIntType copySize = (origState->currSize < (destState->dataSize-destState->currSize)) ?
+    FwSizeType copySize = (origState->currSize < (destState->dataSize-destState->currSize)) ?
         origState->currSize:(destState->dataSize-destState->currSize);
 
     (void)memcpy(&destState->data[destState->currSize],origState->data,copySize);
@@ -774,7 +777,7 @@ Status getFileSize(const char* path, FwSizeType& size) {
     // initialize size
     size = 0;
     // get file state
-    FwNativeIntType index = getFileStateIndex(path);
+    FwIndexType index = getFileStateIndex(path);
     if (index == -1) {
         return INVALID_PATH;
     }
@@ -803,9 +806,9 @@ Status getFreeSpace(const char* path, FwSizeType& totalBytes, FwSizeType& freeBy
     FW_ASSERT(statePtr);
 
     // iterate through bins
-    for (FwNativeUIntType currBin = 0; currBin < cfgPtr->numBins; currBin++) {
+    for (FwIndexType currBin = 0; currBin < cfgPtr->numBins; currBin++) {
         // iterate through files in each bin
-        for (FwNativeUIntType currFile = 0; currFile < cfgPtr->bins[currBin].numFiles; currFile++) {
+        for (FwIndexType currFile = 0; currFile < cfgPtr->bins[currBin].numFiles; currFile++) {
             totalBytes += statePtr->dataSize;
             // only add unused file slots to free space
             if (-1 == statePtr->currSize) {
