@@ -30,13 +30,17 @@ namespace Fw {
 
     void *AlignedAllocator::allocate(const NATIVE_UINT_TYPE identifier, NATIVE_UINT_TYPE &size, bool& recoverable) {
 
+        // aligned_alloc requires that the requested size
+        // be a multiple of the alignment, so round up if necessary
+        NATIVE_UINT_TYPE actSize = size + (size % this->m_alignment);
+
         // Verify size is multiple of alignment by aligned_alloc rule
-        FW_ASSERT(size%this->m_alignment == 0,this->m_alignment,size);
+        FW_ASSERT(actSize%this->m_alignment == 0,this->m_alignment,size);
 
         // don't use identifier
         // heap memory is never recoverable
         recoverable = false;
-        void *mem = ::aligned_alloc(this->m_alignment,size);
+        void *mem = ::aligned_alloc(this->m_alignment,actSize);
         if (nullptr == mem) {
             size = 0; // set to zero if can't get memory
         }

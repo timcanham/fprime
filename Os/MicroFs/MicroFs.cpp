@@ -21,14 +21,11 @@ extern "C" {
 
 namespace Os {
 
-struct MicroFsFileState {
-    FwIndexType loc;       //!< location in file where last operation left off
-    FwNativeIntType currSize;  //!< current size of the file after writes were done. -1 = not created yet.
-    FwSizeType dataSize;  //!< alloted size of the file
-    BYTE* data;                //!< location of file data
-};
-
-STATIC void* MicroFsMem = 0;
+// private pointer to allocated memory for microfs
+STATIC void* s_microFsMem = 0;
+// private copy of configuration struct passed by 
+// user
+MicroFsConfig s_microFsConfig;
 // offset from zero for fds to allow zero checks
 STATIC const FwSizeType MICROFS_FD_OFFSET = 1;
 
@@ -49,13 +46,15 @@ void MicroFsAddBin(MicroFsConfig& cfg, const FwIndexType binIndex, const FwSizeT
 void MicroFsInit(const MicroFsConfig& cfg, const FwNativeUIntType id, Fw::MemAllocator& allocator) {
     // check things...
     FW_ASSERT(cfg.numBins <= MAX_MICROFS_BINS, cfg.numBins, MAX_MICROFS_BINS);
-    FW_ASSERT((not MICROFS_SKIP_NULL_CHECK) and 0 == MicroFsMem);
+    FW_ASSERT((not MICROFS_SKIP_NULL_CHECK) and 0 == s_microFsMem);
+
+    // copy config to private copy 
+    s_microFsConfig = cfg;
 
     // compute the amount of memory needed to hold the file system state
     // and data
 
-    // initialize it to the config struct size
-    FwSizeType memSize = sizeof(MicroFsConfig);
+    FwSizeType memSize = 0;
     FwSizeType totalNumFiles = 0;
     // iterate through the bins
     for (FwSizeType bin = 0; bin < cfg.numBins; bin++) {
@@ -66,24 +65,18 @@ void MicroFsInit(const MicroFsConfig& cfg, const FwNativeUIntType id, Fw::MemAll
 
     // request the memory
     FwNativeUIntType reqMem = memSize;
-    // round up the size to the next alignment boundary
-    reqMem += (reqMem % MICROFS_ALIGNMENT);
 
     bool dontcare;
-    MicroFsMem = allocator.allocate(id, reqMem, dontcare);
+    s_microFsMem = allocator.allocate(id, reqMem, dontcare);
 
     // make sure got the amount requested.
     // improvement could be best effort based on received memory
     FW_ASSERT(reqMem >= memSize, reqMem, memSize);
     // make sure we got a non-null pointer
-    FW_ASSERT(MicroFsMem);
-
-    // copy the configuration structure into the memory
-    MicroFsConfig* cfgPtr = static_cast<MicroFsConfig*>(MicroFsMem);
-    *cfgPtr = cfg;
+    FW_ASSERT(s_microFsMem);
 
     // lay out the memory with the state and the buffers after the config section
-    MicroFsFileState* statePtr = reinterpret_cast<MicroFsFileState*>(&cfgPtr[1]);
+    MicroFsFileState* statePtr = reinterpret_cast<MicroFsFileState*>(s_microFsMem);
 
     // point to memory after state structs for beginning of file data
     BYTE* currFileBuff = reinterpret_cast<BYTE*>(&statePtr[totalNumFiles]);
@@ -111,8 +104,8 @@ void MicroFsInit(const MicroFsConfig& cfg, const FwNativeUIntType id, Fw::MemAll
 void MicroFsCleanup(const FwNativeUIntType id,
                  Fw::MemAllocator& allocator) {
 
-    allocator.deallocate(id,MicroFsMem);
-    MicroFsMem = 0;
+    allocator.deallocate(id,s_microFsMem);
+    s_microFsMem = 0;
 }
 
 // helper to find file state entry from file name. Will return index if found, -1 if not
@@ -140,16 +133,12 @@ getFileStateIndex(const char* fileName) {
         return -1;
     }
 
-    // get number of bins
-    MicroFsConfig* cfgPtr = static_cast<MicroFsConfig*>(MicroFsMem);
-    FW_ASSERT(cfgPtr);
-
     // check to see that indexes don't exceed config
-    if (binIndex >= cfgPtr->numBins) {
+    if (binIndex >= s_microFsConfig.numBins) {
         return -1;
     }
 
-    if (fileIndex >= cfgPtr->bins[binIndex].numFiles) {
+    if (fileIndex >= s_microFsConfig.bins[binIndex].numFiles) {
         return -1;
     }    
 
@@ -158,7 +147,7 @@ getFileStateIndex(const char* fileName) {
 
     // add each chunk of file numbers from full bins
     for (FwSizeType currBin = 0; currBin < binIndex; currBin++) {
-        stateIndex += cfgPtr->bins[currBin].numFiles;
+        stateIndex += s_microFsConfig.bins[currBin].numFiles;
     }
 
     // get residual file number from last bin
@@ -171,10 +160,9 @@ getFileStateIndex(const char* fileName) {
 STATIC MicroFsFileState* getFileStateFromIndex(FwIndexType index) {
     // should be >=0 by the time this is called
     FW_ASSERT(index >= 0, index);
-    FW_ASSERT(MicroFsMem);
+    FW_ASSERT(s_microFsMem);
     // Get base of state structures
-    MicroFsConfig* cfg = reinterpret_cast<MicroFsConfig*>(MicroFsMem);
-    MicroFsFileState* ptr = reinterpret_cast<MicroFsFileState*>(&cfg[1]);
+    MicroFsFileState* ptr = reinterpret_cast<MicroFsFileState*>(s_microFsMem);
     return &ptr[index];
 }
 
@@ -416,7 +404,7 @@ void File::close() {
         // if file system memory is still around
         // catches case where file objects are still
         // lingering after cleanup
-        if (MicroFsMem) {
+        if (s_microFsMem) {
             // get state to clear it
             MicroFsFileState* state = getFileStateFromIndex(this->m_fd - MICROFS_FD_OFFSET);
             FW_ASSERT(state);
@@ -529,10 +517,7 @@ Status createDirectory(const char* path) {
 
     // If the path format is correct, check to see if it is in the
     // range of bins
-    FW_ASSERT(MicroFsMem);
-    MicroFsConfig *cfg = static_cast<MicroFsConfig*>(MicroFsMem);
-
-    if (binIndex < static_cast<FwIndexType>(cfg->numBins)) {
+    if (binIndex < static_cast<FwIndexType>(s_microFsConfig.numBins)) {
         return OP_OK;
     } else {
         return NO_PERMISSION;
@@ -550,9 +535,7 @@ Status readDirectory(const char* path, const U32 maxNum, Fw::String fileArray[],
     if (not path) {
         return INVALID_PATH;
     }
-    // get config
-    FW_ASSERT(MicroFsMem);
-    MicroFsConfig *cfg = static_cast<MicroFsConfig*>(MicroFsMem);
+
     // two cases work: the root "/" and one of the bin directories
     numFiles = 0;
 
@@ -562,7 +545,7 @@ Status readDirectory(const char* path, const U32 maxNum, Fw::String fileArray[],
             return INVALID_PATH;
         }
         // Add directory names based on number of bins
-        for (FwIndexType bin = 0; bin < static_cast<FwIndexType>(cfg->numBins); bin++) {
+        for (FwIndexType bin = 0; bin < static_cast<FwIndexType>(s_microFsConfig.numBins); bin++) {
             // make sure we haven't exceeded provided array size
             if (bin >= static_cast<FwIndexType>(maxNum)) {
                 return OP_OK;
@@ -591,13 +574,13 @@ Status readDirectory(const char* path, const U32 maxNum, Fw::String fileArray[],
 
     // verify in the range of bins
     FwNativeUIntType stat = sscanf(path,dirPathSpec,&binIndex);
-    if ((stat != 1) or (binIndex >= static_cast<FwIndexType>(cfg->numBins))) {
+    if ((stat != 1) or (binIndex >= static_cast<FwIndexType>(s_microFsConfig.numBins))) {
         return INVALID_PATH;
     }
 
     // get set of files in the bin directory
     Fw::String fileStr;
-    for (FwIndexType entry = 0; entry < static_cast<FwIndexType>(cfg->bins[binIndex].numFiles); entry++) {
+    for (FwIndexType entry = 0; entry < static_cast<FwIndexType>(s_microFsConfig.bins[binIndex].numFiles); entry++) {
 
         // make sure we haven't exceeded provided array size
         if (entry >= static_cast<FwIndexType>(maxNum)) {
@@ -797,18 +780,14 @@ Status getFreeSpace(const char* path, FwSizeType& totalBytes, FwSizeType& freeBy
     totalBytes = 0;
     freeBytes = 0;
 
-    // get config
-    FW_ASSERT(MicroFsMem);
-    MicroFsConfig *cfgPtr = static_cast<MicroFsConfig*>(MicroFsMem);
-
-    // File state is after config space
-    MicroFsFileState* statePtr = reinterpret_cast<MicroFsFileState*>(&cfgPtr[1]);
+    // Get first file state struct
+    MicroFsFileState* statePtr = reinterpret_cast<MicroFsFileState*>(s_microFsMem);
     FW_ASSERT(statePtr);
 
     // iterate through bins
-    for (FwIndexType currBin = 0; currBin < static_cast<FwIndexType>(cfgPtr->numBins); currBin++) {
+    for (FwIndexType currBin = 0; currBin < static_cast<FwIndexType>(s_microFsConfig.numBins); currBin++) {
         // iterate through files in each bin
-        for (FwIndexType currFile = 0; currFile < static_cast<FwIndexType>(cfgPtr->bins[currBin].numFiles); currFile++) {
+        for (FwIndexType currFile = 0; currFile < static_cast<FwIndexType>(s_microFsConfig.bins[currBin].numFiles); currFile++) {
             totalBytes += statePtr->dataSize;
             // only add unused file slots to free space
             if (-1 == statePtr->currSize) {
