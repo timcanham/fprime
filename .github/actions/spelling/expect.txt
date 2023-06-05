@@ -1277,7 +1277,7 @@ sev
 sface
 sfregoso
 sgl
-skinparm
+skinparam
 SGN
 SHAREDSTATEDIR
 SHELLCOMMAND
