@@ -102,16 +102,6 @@ struct MicroFsConfig {
     MicroFsBin bins[MAX_MICROFS_BINS];  //!< The bins containing file sizes and numbers of files
 };
 
-// private data structure for managing file state
-struct MicroFsFileState {
-    FwIndexType loc;       //!< location in file where last operation left off
-    FwNativeIntType currSize;  //!< current size of the file after writes were done. -1 = not created yet.
-    FwSizeType dataSize;  //!< alloted size of the file
-    BYTE* data;                //!< location of file data
-};
-
-static const FwNativeUIntType MICROFS_ALIGNMENT = 8; //sizeof(MicroFsFileState);
-
 //!< set the number of bins in config
 void MicroFsSetCfgBins(MicroFsConfig& cfg, const FwSizeType numBins);
 

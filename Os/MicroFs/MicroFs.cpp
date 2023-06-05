@@ -29,6 +29,14 @@ MicroFsConfig s_microFsConfig;
 // offset from zero for fds to allow zero checks
 STATIC const FwSizeType MICROFS_FD_OFFSET = 1;
 
+// private data structure for managing file state
+struct MicroFsFileState {
+    FwIndexType loc;       //!< location in file where last operation left off
+    FwNativeIntType currSize;  //!< current size of the file after writes were done. -1 = not created yet.
+    FwSizeType dataSize;  //!< alloted size of the file
+    BYTE* data;                //!< location of file data
+};
+
 //!< set the number of bins in config
 void MicroFsSetCfgBins(MicroFsConfig& cfg, const FwSizeType numBins) {
     FW_ASSERT(numBins <= MAX_MICROFS_BINS,numBins);
