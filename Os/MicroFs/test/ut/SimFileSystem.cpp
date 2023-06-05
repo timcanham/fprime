@@ -22,7 +22,7 @@ SimFileSystem::SimFileSystem(int n_bins, int n_files_per_bin, std::size_t max_fi
 }
 
 bool SimFileSystem::canOpenFile() const {
-    // Check all bins for non-existent or closed files
+    // Check all bins for nonexistent or closed files
     for (const auto& bin_pair : bins) {
         for (const auto& file : bin_pair.second) {
             FileState state = file_states.at("/bin" + std::to_string(bin_pair.first) + "/" + file);
@@ -39,7 +39,7 @@ bool SimFileSystem::canOpenFile() const {
 std::string SimFileSystem::openFile() {
     std::vector<std::string> available_files;
 
-    // Find all non-existent or closed files
+    // Find all nonexistent or closed files
     for (const auto& bin_pair : bins) {
         for (const auto& file : bin_pair.second) {
             FileState state = file_states["/bin" + std::to_string(bin_pair.first) + "/" + file];

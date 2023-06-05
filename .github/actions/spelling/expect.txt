@@ -25,6 +25,7 @@ aeiouy
 afterstatinfo
 agg
 aheared
+ALIGNEDALLOCATOR
 ALLEXTERNALS
 alloc
 Alltypes
@@ -103,6 +104,7 @@ bibtex
 Bies
 bindir
 Bitfields
+bithacks
 bitmaps
 bitset
 ble
@@ -1234,6 +1236,7 @@ scp
 scrollbars
 sdd
 SDFLIGHT
+seander
 searchdata
 SEARCHENGINE
 segfault
@@ -1274,6 +1277,7 @@ sev
 sface
 sfregoso
 sgl
+skinparm
 SGN
 SHAREDSTATEDIR
 SHELLCOMMAND
@@ -1358,6 +1362,7 @@ strcmp
 STREQ
 STREQUAL
 strerror
+strictuml
 strg
 stri
 stringbuffer
@@ -1587,6 +1592,7 @@ validator
 vals
 valud
 vbai
+vbytes
 venv
 VERSIONED
 versioning
