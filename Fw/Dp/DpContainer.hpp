@@ -89,17 +89,11 @@ class DpContainer {
     // Public member functions
     // ----------------------------------------------------------------------
 
-    //! Copy members from a DpContainer base class
-    void copyBaseMembersFrom(const DpContainer& dpc) {
-      this->m_id = dpc.m_id;
-      this->m_priority = dpc.m_priority;
-      this->m_timeTag = dpc.m_timeTag;
-      this->m_procTypes = dpc.m_procTypes;
-      this->m_dpState = dpc.m_dpState;
-      this->m_dataSize = dpc.m_dataSize;
-      this->m_buffer = dpc.m_buffer;
-      this->m_dataBuffer.copyMembersFrom(dpc.m_dataBuffer);
-    }
+    //! Copy members from a DpContainer object
+    //! TODO: Make this function protected, and have the subclass container
+    //! call it. This requires an update to the FPP code gen.
+    void copyMembersFrom(const DpContainer& dpc  //!< The DpContainer object
+    );
 
     //! Get the container id
     //! \return The id

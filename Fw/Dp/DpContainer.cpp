@@ -35,6 +35,17 @@ DpContainer::DpContainer()
 // Public member functions
 // ----------------------------------------------------------------------
 
+void DpContainer::copyMembersFrom(const DpContainer& dpc) {
+    this->m_id = dpc.m_id;
+    this->m_priority = dpc.m_priority;
+    this->m_timeTag = dpc.m_timeTag;
+    this->m_procTypes = dpc.m_procTypes;
+    this->m_dpState = dpc.m_dpState;
+    this->m_dataSize = dpc.m_dataSize;
+    this->m_buffer = dpc.m_buffer;
+    this->m_dataBuffer.copyMembersFrom(dpc.m_dataBuffer);
+}
+
 Fw::SerializeStatus DpContainer::deserializeHeader() {
     FW_ASSERT(this->m_buffer.isValid());
     Fw::SerializeBufferBase& serializeRepr = this->m_buffer.getSerializeRepr();
