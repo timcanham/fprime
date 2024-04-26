@@ -188,7 +188,10 @@ class SerializeBufferBase {
     bool operator==(const SerializeBufferBase& other) const;
     friend std::ostream& operator<<(std::ostream& os, const SerializeBufferBase& buff);
 #endif
-  PROTECTED: SerializeBufferBase();  //!< default constructor
+
+  PROTECTED:
+    SerializeBufferBase();  //!< default constructor
+
   PRIVATE:
     // A no-implementation copy constructor here will prevent the default copy constructor from being called
     // accidentally, and without an implementation it will create an error for the developer instead.
