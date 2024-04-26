@@ -279,7 +279,9 @@ namespace Ref {
         // Make sure we got the buffer we wanted or quit
         if (Fw::Success::SUCCESS == status) {
             printf("Reply %" PRI_FwSizeType "\n",container.getDataSize());
-            this->m_dpContainer = container;
+            this->m_dpContainer.copyBaseMembersFrom(container);
+            // TODO: Move this into the generated code
+            this->m_dpContainer.setBaseId(container.getBaseId());
             printf("Reply2\n");
             this->m_dpInProgress = true;
             this->log_ACTIVITY_LO_SignalGen_DpStarted(this->m_numDps);

@@ -188,9 +188,7 @@ class SerializeBufferBase {
     bool operator==(const SerializeBufferBase& other) const;
     friend std::ostream& operator<<(std::ostream& os, const SerializeBufferBase& buff);
 #endif
-  PROTECTED:
-    SerializeBufferBase();  //!< default constructor
-
+  PROTECTED: SerializeBufferBase();  //!< default constructor
   PRIVATE:
     // A no-implementation copy constructor here will prevent the default copy constructor from being called
     // accidentally, and without an implementation it will create an error for the developer instead.
@@ -205,15 +203,33 @@ class SerializeBufferBase {
 
 class ExternalSerializeBuffer : public SerializeBufferBase {
   public:
-    ExternalSerializeBuffer(U8* buffPtr, Serializable::SizeType size);  //!< construct with external buffer
-    ExternalSerializeBuffer();                                          //!< default constructor
-    void setExtBuffer(U8* buffPtr, Serializable::SizeType size);        //!< Set the external buffer
-    void clear();                                                       //!< clear external buffer
+    ExternalSerializeBuffer(U8* buffPtr, Serializable::SizeType size);     //!< construct with external buffer
+    ExternalSerializeBuffer();                                             //!< default constructor
+    ~ExternalSerializeBuffer() {}                                          //!< destructor
+    void setExtBuffer(U8* buffPtr, Serializable::SizeType size);           //!< Set the external buffer
+    void clear();                                                          //!< clear external buffer
+    ExternalSerializeBuffer(const ExternalSerializeBuffer& src) = delete;  //!< deleted copy constructor
 
     // pure virtual functions
     Serializable::SizeType getBuffCapacity() const;
     U8* getBuffAddr();
     const U8* getBuffAddr() const;
+
+    //! Deleted copy assignment operator
+    ExternalSerializeBuffer& operator=(const SerializeBufferBase& src) = delete;
+
+    //! Copy members from an ExternalSerializeBuffer
+    void copyMembersFrom(const ExternalSerializeBuffer& src) {
+        // Ward against self-assignment
+        if (this != &src) {
+            this->m_buff = src.m_buff;
+            this->m_buffSize = src.m_buffSize;
+        }
+    }
+
+    //! Copy data from a SerializeBufferBase
+    //! Address of this buffer must be non-null, or assertion will fail
+    void copyDataFrom(const SerializeBufferBase& src) { (void)SerializeBufferBase::operator=(src); }
 
   PRIVATE:
     // no copying

@@ -59,7 +59,7 @@ class DpContainer {
 
   public:
     // ----------------------------------------------------------------------
-    // Constructor
+    // Constructors and destructors
     // ----------------------------------------------------------------------
 
     //! Constructor for initialized container
@@ -70,10 +70,36 @@ class DpContainer {
     //! Constructor for container with default initialization
     DpContainer();
 
+    //! Destructor
+    virtual ~DpContainer() {}
+
+    //! Copy constructor
+    DpContainer(const DpContainer& dpc) = delete;
+
+  public:
+    // ----------------------------------------------------------------------
+    // Operators
+    // ----------------------------------------------------------------------
+
+    //! Copy assignment operator
+    DpContainer& operator=(const DpContainer&) = delete;
+
   public:
     // ----------------------------------------------------------------------
     // Public member functions
     // ----------------------------------------------------------------------
+
+    //! Copy members from a DpContainer base class
+    void copyBaseMembersFrom(const DpContainer& dpc) {
+      this->m_id = dpc.m_id;
+      this->m_priority = dpc.m_priority;
+      this->m_timeTag = dpc.m_timeTag;
+      this->m_procTypes = dpc.m_procTypes;
+      this->m_dpState = dpc.m_dpState;
+      this->m_dataSize = dpc.m_dataSize;
+      this->m_buffer = dpc.m_buffer;
+      this->m_dataBuffer.copyMembersFrom(dpc.m_dataBuffer);
+    }
 
     //! Get the container id
     //! \return The id
