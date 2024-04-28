@@ -250,7 +250,7 @@ class ExternalSerializeBufferWithDataCopy final : public ExternalSerializeBuffer
 //! External serialize buffer with member copy semantics
 //!
 //! Use this when the object esb1 on the left-hand side of an assignment esb1 = esb2
-//! may have an invalid buffer, and you want to move the buffer of esb2 into it.
+//! has an invalid buffer, and you want to move the buffer of esb2 into it.
 //! In this case there should usually be no more uses of esb2 after the assignment.
 class ExternalSerializeBufferWithMemberCopy final : public ExternalSerializeBuffer {
   public:
