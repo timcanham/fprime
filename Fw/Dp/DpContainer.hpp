@@ -73,27 +73,10 @@ class DpContainer {
     //! Destructor
     virtual ~DpContainer() {}
 
-    //! Copy constructor
-    DpContainer(const DpContainer& dpc) = delete;
-
-  public:
-    // ----------------------------------------------------------------------
-    // Operators
-    // ----------------------------------------------------------------------
-
-    //! Copy assignment operator
-    DpContainer& operator=(const DpContainer&) = delete;
-
   public:
     // ----------------------------------------------------------------------
     // Public member functions
     // ----------------------------------------------------------------------
-
-    //! Copy members from a DpContainer object
-    //! TODO: Make this function protected, and have the subclass container
-    //! call it. This requires an update to the FPP code gen.
-    void copyMembersFrom(const DpContainer& dpc  //!< The DpContainer object
-    );
 
     //! Get the container id
     //! \return The id
@@ -280,7 +263,9 @@ class DpContainer {
     Buffer m_buffer;
 
     //! The data buffer
-    Fw::ExternalSerializeBuffer m_dataBuffer;
+    //! We use member copy semantics because m_dataBuffer points into m_buffer,
+    //! which is owned by this object
+    Fw::ExternalSerializeBufferWithMemberCopy m_dataBuffer;
 };
 
 }  // end namespace Fw

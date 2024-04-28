@@ -202,8 +202,9 @@ class SerializeBufferBase {
     Serializable::SizeType m_deserLoc;              //!< current offset for deserialization
 };
 
-// Helper class for building buffers with external storage
+// Helper classes for building buffers with external storage
 
+//! External serialize buffer with no copy semantics
 class ExternalSerializeBuffer : public SerializeBufferBase {
   public:
     ExternalSerializeBuffer(U8* buffPtr, Serializable::SizeType size);     //!< construct with external buffer
@@ -221,27 +222,51 @@ class ExternalSerializeBuffer : public SerializeBufferBase {
     //! Deleted copy assignment operator
     ExternalSerializeBuffer& operator=(const SerializeBufferBase& src) = delete;
 
-    //! Copy members from an ExternalSerializeBuffer
-    void copyMembersFrom(const ExternalSerializeBuffer& src) {
+  PROTECTED:
+    // private data
+    U8* m_buff;                         //!< pointer to external buffer
+    Serializable::SizeType m_buffSize;  //!< size of external buffer
+};
+
+//! External serialize buffer with data copy semantics
+//!
+//! Use this when the object esb1 on the left-hand side of an assignment esb1 = esb2
+//! is guaranteed to have a valid buffer
+class ExternalSerializeBufferWithDataCopy final : public ExternalSerializeBuffer {
+  public:
+    ExternalSerializeBufferWithDataCopy(U8* buffPtr, Serializable::SizeType size)
+        : ExternalSerializeBuffer(buffPtr, size) {}
+    ExternalSerializeBufferWithDataCopy() : ExternalSerializeBuffer() {}
+    ~ExternalSerializeBufferWithDataCopy() {}
+    ExternalSerializeBufferWithDataCopy(const ExternalSerializeBufferWithDataCopy& src) {
+        (void)SerializeBufferBase::operator=(src);
+    }
+    ExternalSerializeBufferWithDataCopy& operator=(SerializeBufferBase& src) {
+        (void)SerializeBufferBase::operator=(src);
+        return *this;
+    }
+};
+
+//! External serialize buffer with member copy semantics
+//!
+//! Use this when the object esb1 on the left-hand side of an assignment esb1 = esb2
+//! may have an invalid buffer, and you want to move the buffer of esb2 into it.
+//! In this case there should usually be no more uses of esb2 after the assignment.
+class ExternalSerializeBufferWithMemberCopy final : public ExternalSerializeBuffer {
+  public:
+    ExternalSerializeBufferWithMemberCopy(U8* buffPtr, Serializable::SizeType size)
+        : ExternalSerializeBuffer(buffPtr, size) {}
+    ExternalSerializeBufferWithMemberCopy() : ExternalSerializeBuffer() {}
+    ~ExternalSerializeBufferWithMemberCopy() {}
+    ExternalSerializeBufferWithMemberCopy(const ExternalSerializeBufferWithMemberCopy& src) { (void)operator=(src); }
+    ExternalSerializeBufferWithMemberCopy& operator=(const ExternalSerializeBufferWithMemberCopy& src) {
         // Ward against self-assignment
         if (this != &src) {
             this->m_buff = src.m_buff;
             this->m_buffSize = src.m_buffSize;
         }
+        return *this;
     }
-
-    //! Copy data from a SerializeBufferBase
-    //! Address of this buffer must be non-null, or assertion will fail
-    void copyDataFrom(const SerializeBufferBase& src) { (void)SerializeBufferBase::operator=(src); }
-
-  PRIVATE:
-    // no copying
-    ExternalSerializeBuffer(ExternalSerializeBuffer& other);
-    ExternalSerializeBuffer(ExternalSerializeBuffer* other);
-
-    // private data
-    U8* m_buff;                         //!< pointer to external buffer
-    Serializable::SizeType m_buffSize;  //!< size of external buffer
 };
 
 }  // namespace Fw
