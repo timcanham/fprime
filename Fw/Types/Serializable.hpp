@@ -219,11 +219,11 @@ class ExternalSerializeBuffer : public SerializeBufferBase {
     U8* getBuffAddr();
     const U8* getBuffAddr() const;
 
-    //! Deleted copy assignment operator
+    //! deleted copy assignment operator
     ExternalSerializeBuffer& operator=(const SerializeBufferBase& src) = delete;
 
   PROTECTED:
-    // private data
+    // data members
     U8* m_buff;                         //!< pointer to external buffer
     Serializable::SizeType m_buffSize;  //!< size of external buffer
 };
