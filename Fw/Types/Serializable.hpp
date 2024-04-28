@@ -230,7 +230,7 @@ class ExternalSerializeBuffer : public SerializeBufferBase {
 
 //! External serialize buffer with data copy semantics
 //!
-//! Use this when the object esb1 on the left-hand side of an assignment esb1 = esb2
+//! Use this when the object esb on the left-hand side of an assignment esb = sbb
 //! is guaranteed to have a valid buffer
 class ExternalSerializeBufferWithDataCopy final : public ExternalSerializeBuffer {
   public:
@@ -238,7 +238,7 @@ class ExternalSerializeBufferWithDataCopy final : public ExternalSerializeBuffer
         : ExternalSerializeBuffer(buffPtr, size) {}
     ExternalSerializeBufferWithDataCopy() : ExternalSerializeBuffer() {}
     ~ExternalSerializeBufferWithDataCopy() {}
-    ExternalSerializeBufferWithDataCopy(const ExternalSerializeBufferWithDataCopy& src) {
+    ExternalSerializeBufferWithDataCopy(const SerializeBufferBase& src) {
         (void)SerializeBufferBase::operator=(src);
     }
     ExternalSerializeBufferWithDataCopy& operator=(SerializeBufferBase& src) {

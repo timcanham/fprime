@@ -315,6 +315,7 @@ errmsg
 ERRORCHECK
 errornum
 ert
+esb
 ethanchee
 etime
 eturn
@@ -898,6 +899,7 @@ sanitizers
 sats
 savelist
 saveop
+sbb
 sbb
 SBF
 SBINDIR
