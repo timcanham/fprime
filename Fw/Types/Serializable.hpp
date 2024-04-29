@@ -52,9 +52,10 @@ class Serialization {
 };
 
 class SerializeBufferBase {
-  public:
-    SerializeBufferBase& operator=(const SerializeBufferBase& src);  //!< equal operator
+  protected:
+    SerializeBufferBase& operator=(const SerializeBufferBase& src);  //!< copy assignment operator
 
+  public:
     virtual ~SerializeBufferBase();  //!< destructor
 
     // Serialization for built-in types
