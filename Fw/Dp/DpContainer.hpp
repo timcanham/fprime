@@ -73,6 +73,14 @@ class DpContainer {
     //! Destructor
     virtual ~DpContainer() {}
 
+  protected:
+    // ----------------------------------------------------------------------
+    // Protected operators
+    // ----------------------------------------------------------------------
+
+    //! Copy assignment operator
+    DpContainer& operator=(const DpContainer& src) = default;
+
   public:
     // ----------------------------------------------------------------------
     // Public member functions
