@@ -239,7 +239,7 @@ class ExternalSerializeBufferWithDataCopy final : public ExternalSerializeBuffer
         : ExternalSerializeBuffer(buffPtr, size) {}
     ExternalSerializeBufferWithDataCopy() : ExternalSerializeBuffer() {}
     ~ExternalSerializeBufferWithDataCopy() {}
-    ExternalSerializeBufferWithDataCopy(const SerializeBufferBase& src) {
+    explicit ExternalSerializeBufferWithDataCopy(const SerializeBufferBase& src) {
         (void)SerializeBufferBase::operator=(src);
     }
     ExternalSerializeBufferWithDataCopy& operator=(SerializeBufferBase& src) {
@@ -259,7 +259,9 @@ class ExternalSerializeBufferWithMemberCopy final : public ExternalSerializeBuff
         : ExternalSerializeBuffer(buffPtr, size) {}
     ExternalSerializeBufferWithMemberCopy() : ExternalSerializeBuffer() {}
     ~ExternalSerializeBufferWithMemberCopy() {}
-    ExternalSerializeBufferWithMemberCopy(const ExternalSerializeBufferWithMemberCopy& src) { (void)operator=(src); }
+    explicit ExternalSerializeBufferWithMemberCopy(const ExternalSerializeBufferWithMemberCopy& src) {
+        (void)operator=(src);
+    }
     ExternalSerializeBufferWithMemberCopy& operator=(const ExternalSerializeBufferWithMemberCopy& src) {
         // Ward against self-assignment
         if (this != &src) {
