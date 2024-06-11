@@ -1,3 +1,5 @@
+include(target/ut)
+
 ####
 # check.cmake:
 #
@@ -10,11 +12,9 @@
 #
 # - **TARGET_NAME:** target name to be generated
 ####
-function(add_global_target TARGET_NAME)
-    add_custom_target(${TARGET_NAME}
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR} find . -name "*.gcda" -delete
-            COMMAND ${CMAKE_CTEST_COMMAND})
-endfunction(add_global_target)
+function(check_add_global_target TARGET_NAME)
+    add_custom_target(${TARGET_NAME} COMMAND ${CMAKE_CTEST_COMMAND})
+endfunction(check_add_global_target)
 
 ####
 # Function `add_deployment_target`:
@@ -27,39 +27,51 @@ endfunction(add_global_target)
 # - **DEPENDENCIES:** MOD_DEPS input from CMakeLists.txt
 # - **FULL_DEPENDENCIES:** MOD_DEPS input from CMakeLists.txt
 ####
-function(add_deployment_target MODULE TARGET SOURCES DEPENDENCIES FULL_DEPENDENCIES)
+function(check_add_deployment_target MODULE TARGET SOURCES DEPENDENCIES FULL_DEPENDENCIES)
     set(ALL_UTS)
     foreach(DEPENDENCY IN LISTS FULL_DEPENDENCIES)
         get_property(DEPENDENCY_UTS TARGET "${DEPENDENCY}" PROPERTY FPRIME_UTS)
         list(APPEND ALL_UTS ${DEPENDENCY_UTS})
     endforeach()
-    string(REPLACE ";" "\\|" JOINED_UTS "${ALL_UTS}")
-    add_custom_target(${MODULE}_${TARGET_NAME}
-        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR} find . -name "*.gcda" -delete
-        COMMAND ${CMAKE_CTEST_COMMAND} -R "${JOINED_UTS}"
-        DEPENDS ${ALL_UTS}
-    )
+    # Only run deployment UTs when some are defined
+    if (ALL_UTS)
+        string(REPLACE ";" "\\|" JOINED_UTS "${ALL_UTS}")
+        add_custom_target(${MODULE}_${TARGET_NAME}
+            COMMAND ${CMAKE_CTEST_COMMAND} -R "${JOINED_UTS}"
+            DEPENDS ${ALL_UTS}
+        )
+    else()
+        add_custom_target(${MODULE}_${TARGET_NAME}
+            COMMAND ${CMAKE_COMMAND} -E echo "No unit tests defined for ${MODULE}"
+        )
+    endif()
 endfunction()
 
 ####
-# Dict function `add_module_target`:
+# Function `check_add_module_target`:
 #
-# Creates each module's coverage targets. Note: only run for "BUILD_TESTING=ON" builds.
+# Creates each module's check targets. Note: only run for "BUILD_TESTING=ON" builds.
 #
 # - **MODULE_NAME:** name of the module
 # - **TARGET_NAME:** name of target to produce
 # - **SOURCE_FILES:** list of source file inputs
 # - **DEPENDENCIES:** MOD_DEPS input from CMakeLists.txt
 ####
-function(add_module_target MODULE_NAME TARGET_NAME SOURCE_FILES DEPENDENCIES)
+function(check_add_module_target MODULE_NAME TARGET_NAME SOURCE_FILES DEPENDENCIES)
     # Protects against multiple calls to fprime_register_ut()
-    if (NOT TARGET ${MODULE_NAME}_${TARGET_NAME})
+    if (NOT BUILD_TESTING OR NOT MODULE_TYPE STREQUAL "Unit Test")
+        return()
+    endif()
+    # UTs MODULE_NAME defaults to <FPRIME_MODULE_NAME>_ut_exe
+    # The below handling gives CHECK_TARGET_NAME = <FPRIME_MODULE_NAME>_check
+    string(REGEX REPLACE "_${UT_TARGET}$" "" CHECK_TARGET_NAME "${MODULE_NAME}")
+    string(APPEND CHECK_TARGET_NAME "_${TARGET_NAME}")
+    if (NOT TARGET ${CHECK_TARGET_NAME})
         add_custom_target(
-            "${MODULE_NAME}_${TARGET_NAME}"
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR} find . -name "*.gcda" -delete
+            "${CHECK_TARGET_NAME}"
             COMMAND ${CMAKE_CTEST_COMMAND} --verbose
         )
     endif()
-    add_dependencies("${MODULE_NAME}_check" ${UT_EXE_NAME})
+    add_dependencies("${CHECK_TARGET_NAME}" ${UT_EXE_NAME})
     add_dependencies(check ${UT_EXE_NAME})
-endfunction(add_module_target)
+endfunction(check_add_module_target)

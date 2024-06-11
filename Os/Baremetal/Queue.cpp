@@ -5,7 +5,7 @@
 //         safety is implemented as this intended for baremetal devices.
 //         Based on Os/Pthreads/Queue.cpp from @dinkel
 // ======================================================================
-#include <Fw/Types/BasicTypes.hpp>
+#include <FpConfig.hpp>
 #include <Os/Pthreads/BufferQueue.hpp>
 #include <Fw/Types/Assert.hpp>
 #include <Os/Queue.hpp>
@@ -176,7 +176,7 @@ Queue::QueueStatus bareReceiveBlock(BareQueueHandle& handle, U8* buffer, NATIVE_
     }
     else {
         actualSize = 0;
-        if( size > (static_cast<NATIVE_UINT_TYPE>(capacity) ) {
+        if( size > (static_cast<NATIVE_UINT_TYPE>(capacity)) ) {
             // The buffer capacity was too small!
             status = Queue::QUEUE_SIZE_MISMATCH;
         }

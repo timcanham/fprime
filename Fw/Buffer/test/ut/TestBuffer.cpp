@@ -2,7 +2,7 @@
 // Created by mstarch on 11/13/20.
 //
 #include "Fw/Buffer/Buffer.hpp"
-#include "Fw/Types/BasicTypes.hpp"
+#include <FpConfig.hpp>
 #include <gtest/gtest.h>
 
 
@@ -83,21 +83,19 @@ void test_representations() {
     }
     Fw::SerializeStatus stat = sbb.serialize(100);
     ASSERT_NE(stat, Fw::FW_SERIALIZE_OK);
+
     // And that another call to repr resets it
-    sbb = buffer.getSerializeRepr();
     sbb.resetSer();
     ASSERT_EQ(sbb.serialize(0), Fw::FW_SERIALIZE_OK);
 
     // Now deserialize all the things
     U32 out;
-    sbb = buffer.getSerializeRepr();
     sbb.setBuffLen(buffer.getSize());
     for (U32 i = 0; i < sizeof(data)/4; i++) {
         ASSERT_EQ(sbb.deserialize(out), Fw::FW_SERIALIZE_OK);
         ASSERT_EQ(i, out);
     }
     ASSERT_NE(sbb.deserialize(out), Fw::FW_SERIALIZE_OK);
-    sbb = buffer.getSerializeRepr();
     sbb.setBuffLen(buffer.getSize());
     ASSERT_EQ(sbb.deserialize(out), Fw::FW_SERIALIZE_OK);
     ASSERT_EQ(0, out);
@@ -119,6 +117,10 @@ void test_serialization() {
     Fw::Buffer buffer_new;
     externalSerializeBuffer.deserialize(buffer_new);
     ASSERT_EQ(buffer_new, buffer);
+
+    // Make sure internal ExternalSerializeBuffer is reinitialized
+    ASSERT_EQ(buffer_new.m_serialize_repr.m_buff,data);
+    ASSERT_EQ(buffer_new.m_serialize_repr.m_buffSize,sizeof(data));
 }
 
 

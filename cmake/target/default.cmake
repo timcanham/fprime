@@ -12,7 +12,7 @@
 ####
 function(add_global_target TARGET)
     if (CMAKE_DEBUG_OUTPUT)
-        message(STATUS "Adding blank target: ${TARGET}")
+        message(STATUS "[target] Adding default global target: ${TARGET}")
     endif()
     add_custom_target(${TARGET})
 endfunction(add_global_target)
@@ -20,7 +20,7 @@ endfunction(add_global_target)
 ####
 # `add_deployment_target`:
 #
-# The default deployment target is a target which rolls-up all dependant targets through recursion.
+# The default deployment target is a target which rolls-up all dependent targets through recursion.
 # - **MODULE:** name of the deployment module. This is usually equivalent to $PROJECT_NAME.
 # - **TARGET:** name of the top-target (e.g. dict). Use ${MODULE_NAME}_${TARGET_NAME} for a module specific target
 # - **SOURCE:** list of source file inputs from the CMakeList.txt setup
@@ -28,7 +28,7 @@ endfunction(add_global_target)
 ####
 function(add_deployment_target MODULE TARGET SOURCES DIRECT_DEPENDENCIES FULL_DEPENDENCY_LIST)
     if (CMAKE_DEBUG_OUTPUT)
-        message(STATUS "Adding deployment target: ${MODULE}_${TARGET}")
+        message(STATUS "Adding default deployment target: ${MODULE}_${TARGET}")
     endif()
     add_custom_target("${MODULE}_${TARGET}")
     foreach(DEPENDENCY IN LISTS RESULTS)
@@ -50,5 +50,7 @@ endfunction(add_deployment_target)
 # - **DEPENDENCIES:** MOD_DEPS input from CMakeLists.txt
 ####
 function(add_module_target MODULE TARGET SOURCES DEPENDENCIES)
-    message(FATAL_ERROR "${TARGET} does not implement 'add_module_target'")
+    if (CMAKE_DEBUG_OUTPUT)
+        message(STATUS "Skipping module target: ${MODULE}_${TARGET}, default performs no action.")
+    endif()
 endfunction(add_module_target)
