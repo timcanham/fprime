@@ -17,7 +17,7 @@
 
 namespace Drv {
 
-  class LinuxI2cDriver :
+  class LinuxI2cDriver final :
     public LinuxI2cDriverComponentBase
   {
 
@@ -69,7 +69,7 @@ namespace Drv {
 
       // Prevent unused field error when using stub
       #ifndef STUBBED_LINUX_I2C_DRIVER
-      NATIVE_INT_TYPE m_fd; //!< i2c file descriptor
+      PlatformIntType m_fd; //!< i2c file descriptor
       #endif
     };
 

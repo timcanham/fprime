@@ -1,7 +1,7 @@
 #ifndef FW_OUTPUT_SERIALIZE_PORT_HPP
 #define FW_OUTPUT_SERIALIZE_PORT_HPP
 
-#include <FpConfig.hpp>
+#include <Fw/FPrimeBasicTypes.hpp>
 
 #if FW_PORT_SERIALIZATION == 1
 
@@ -9,7 +9,7 @@
 
 namespace Fw {
 
-    class OutputSerializePort : public OutputPortBase {
+    class OutputSerializePort final : public OutputPortBase {
         public:
             OutputSerializePort();
             virtual ~OutputSerializePort();

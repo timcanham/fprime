@@ -18,7 +18,7 @@
 
 namespace RPI {
 
-  class RpiDemoComponentImpl :
+  class RpiDemoComponentImpl final :
     public RpiDemoComponentBase
   {
 
@@ -138,7 +138,6 @@ namespace RPI {
       Fw::Logic m_currLedVal;
       // serial buffers
       Fw::Buffer m_recvBuffers[NUM_RPI_UART_BUFFERS];
-      BYTE m_uartBuffers[NUM_RPI_UART_BUFFERS][RPI_UART_READ_BUFF_SIZE];
       // LED enabled
       bool m_ledOn;
       // toggle LED divider

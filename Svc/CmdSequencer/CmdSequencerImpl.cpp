@@ -44,7 +44,7 @@ namespace Svc {
 
     }
 
-    void CmdSequencerComponentImpl::setTimeout(const NATIVE_UINT_TYPE timeout) {
+    void CmdSequencerComponentImpl::setTimeout(const U32 timeout) {
         this->m_timeout = timeout;
     }
 
@@ -56,9 +56,9 @@ namespace Svc {
 
     void CmdSequencerComponentImpl ::
       allocateBuffer(
-          const NATIVE_INT_TYPE identifier,
+          const FwEnumStoreType identifier,
           Fw::MemAllocator& allocator,
-          const NATIVE_UINT_TYPE bytes
+          const FwSizeType bytes
       )
     {
         this->m_sequence->allocateBuffer(identifier, allocator, bytes);
@@ -322,7 +322,7 @@ namespace Svc {
     }
 
     void CmdSequencerComponentImpl ::
-      schedIn_handler(FwIndexType portNum, NATIVE_UINT_TYPE order)
+      schedIn_handler(FwIndexType portNum, U32 order)
     {
 
         Fw::Time currTime = this->getTime();

@@ -22,7 +22,7 @@
 
 namespace Ref {
 
-    class SignalGen :
+    class SignalGen final :
         public SignalGenComponentBase
     {
 
@@ -108,10 +108,6 @@ namespace Ref {
         U32 m_dpBytes; //!< currently serialized records
         FwDpPriorityType m_dpPriority; //!< stored priority for current DP
 
-        // for async DP
-        FwOpcodeType m_opCode;
-        U32 m_cmdSeq;
-
     };
-};
+}
 #endif
