@@ -330,7 +330,7 @@ namespace Svc {
 
         // open the state file
         Os::File stateFile;
-        // we open it as a new file so we don't accumulate invalid entries
+        // append new entries to the end of the file
         Os::File::Status stat = stateFile.open(this->m_stateFile.toChar(), Os::File::OPEN_APPEND);
         if (stat != Os::File::OP_OK) {
             this->log_WARNING_HI_StateFileOpenError(this->m_stateFile, stat);
@@ -360,7 +360,6 @@ namespace Svc {
         // close the state file
         stateFile.close();
     }
-
 
     Fw::CmdResponse DpCatalog::doCatalogBuild() {
 
@@ -698,6 +697,21 @@ namespace Svc {
 
 
     void DpCatalog::deleteEntry(DpStateEntry& entry) {
+        // Do a "lazy" delete in the tree, i.e. find it and 
+        // mark it as deleted as opposed to trying to rebuild the tree.
+        // The tree can be searched linearly as opposed to priority since
+        // we just need to find it. The next time the catalog is loaded
+        // the file will be gone.
+        FW_ASSERT(m_dpTree);
+
+        for (FwSizeType treeEntry = 0; treeEntry < this->m_numDpRecords; treeEntry++) {
+            if (
+                (this->m_dpTree[treeEntry].entry.record.getid() == entry.record.getid()) 
+               ) {
+                    this->m_dpTree[treeEntry].entry.record.setstate(Fw::DpState::DELETED);
+                    break;
+                }
+        }
 
     }
 
@@ -766,9 +780,12 @@ namespace Svc {
                 } else {
                     // Step 4 - if the current node is null, pop back up the stack
                     this->m_currentNode = this->m_traverseStack[this->m_currStackEntry--];
-                    if (this->m_currentNode->entry.record.getstate() != Fw::DpState::TRANSMITTED) {
+                    if ( // check if transmitted or deleted
+                        (this->m_currentNode->entry.record.getstate() != Fw::DpState::TRANSMITTED) &&
+                        (this->m_currentNode->entry.record.getstate() != Fw::DpState::DELETED)
+                       ) {
                         found = this->m_currentNode;
-                    }// check if transmitted
+                    }
                     this->m_currentNode = this->m_currentNode->right;
                     if (found != nullptr) {
                         return found;
@@ -782,10 +799,13 @@ namespace Svc {
                     this->m_currentNode = this->m_currentNode->left;
                 } else {
                     // Step 4 - check to see if this node has already been transmitted, if so, pop back up the stack
-                    if (this->m_currentNode->entry.record.getstate() != Fw::DpState::TRANSMITTED) {
+                    if ( // check if transmitted
+                        (this->m_currentNode->entry.record.getstate() != Fw::DpState::TRANSMITTED) && 
+                        (this->m_currentNode->entry.record.getstate() != Fw::DpState::DELETED)
+                       ) {
                         // we found an entry, so set the return to the current node
                         found = this->m_currentNode;
-                    } // check if transmitted
+                    } 
                     // go to the right node
                     this->m_currentNode = this->m_currentNode->right;
                     // if a node was found, return it
@@ -966,6 +986,12 @@ namespace Svc {
             // benign error, so don't fail the command
             this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
         } else {
+
+            // reset transmit state
+            this->resetTreeStack();
+            this->m_xmitInProgress = true;
+            this->log_ACTIVITY_HI_CatalogXmitStopped(this->m_xmitBytes);
+
             this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
         }
     }
@@ -976,9 +1002,79 @@ namespace Svc {
             U32 cmdSeq
         )
     {
-        // TODO
+
+        // check initialization
+        if (not this->checkInit()) {
+            this->log_WARNING_HI_NotInitialized();
+            this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::EXECUTION_ERROR);            
+        }
+
+        // make sure a downlink is not in progress
+        if (this->m_xmitInProgress) {
+            this->log_WARNING_LO_DpXmitInProgress();
+            this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::EXECUTION_ERROR);            
+        }
+
+        // reset tree structure
+        this->resetBinaryTree();
+        // reset state data structure
+        this->resetStateFileData();
+        // reset tree stack
+        this->resetTreeStack();
+        // delete state file, if it exists. Don't bother with status
+        // since we wouldn't do anything different if it wasn't there
+        (void)Os::FileSystem::removeFile(this->m_stateFile.toChar());
+
+        this->log_ACTIVITY_HI_CatalogCleared();
         this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
     }
+
+    void DpCatalog ::DELETE_DP_cmdHandler(FwOpcodeType opCode, U32 cmdSeq, U32 dir, U32 id, U32 tSec, U32 tSub) {
+        
+        // First, make sure it isn't being transmitted! We don't
+        // want to delete the file as the downlink is reading it.
+
+        if (
+        (this->m_currentXmitNode != nullptr) &&    
+        (this->m_currentXmitNode->entry.record.getid() == id) &&
+        (this->m_currentXmitNode->entry.record.gettSec() == tSec) &&
+        (this->m_currentXmitNode->entry.record.gettSub() == tSub)
+        ) {
+            this->log_WARNING_LO_DpDeleteXmitInProg(id,tSec,tSub,dir);
+            this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+            return;
+        }
+
+        // Build DpEntry from arguments
+        DpStateEntry delEntry;
+        delEntry.dir = static_cast<FwIndexType>(dir);
+        delEntry.record.setid(id);
+        delEntry.record.settSec(tSec);
+        delEntry.record.settSub(tSub);
+
+        // If the DP is in the catalog tree, delete it
+        this->deleteEntry(delEntry);
+
+        // Finally, delete the file
+
+        // build file name based on the entry to delete
+        Fw::FileNameString delFileName;
+        delFileName.format(DP_FILENAME_FORMAT,
+            this->m_directories[dir].toChar(),
+            id,
+            tSec,
+            tSub
+        );
+
+        // delete file
+        Os::FileSystem::Status stat = Os::FileSystem::removeFile(delFileName.toChar());
+        if (stat != Os::FileSystem::Status::OP_OK) {
+            this->log_WARNING_LO_DpFileDeleteError(delFileName,stat);
+        }
+
+        this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+    }
+    
 
 
 }

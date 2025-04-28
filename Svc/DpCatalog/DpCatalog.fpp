@@ -78,7 +78,7 @@ module Svc {
 
     @ Start transmitting catalog
     async command START_XMIT_CATALOG (
-                                    wait: Fw.Wait @< have START_XMIT command complete wait for catalog to complete transmitting
+        wait: Fw.Wait @< have START_XMIT command complete wait for catalog to complete transmitting
                                   ) \    
       opcode 1
 
@@ -89,6 +89,16 @@ module Svc {
     @ clear existing catalog
     async command CLEAR_CATALOG \
       opcode 3
+
+    @ delete existing DP
+    async command DELETE_DP (
+        dir: U32 # The directory index of the file
+        $id: U32 # The ID of the data product
+        tSec: U32 # Generation time in seconds
+        tSub: U32 # Generation time in subseconds
+    ) \
+      opcode 4
+
 
     # ----------------------------------------------------------------------
     # Events
@@ -145,7 +155,7 @@ module Svc {
 
     @ Catalog transmission stopped
     event CatalogXmitStopped (
-                            bytes: U32 @< data transmitted
+                            bytes: U64 @< data transmitted
                           ) \
       severity activity high \
       id 11 \
@@ -364,6 +374,31 @@ module Svc {
       id 42 \
       format "Error sending DP file {}, stat {}. Halting xmit." \
       throttle 10
+
+    event CatalogCleared \
+      severity activity high \
+      id 43 \
+      format "Data Product catalog cleared"
+
+    @ error deleting DP being transmitted
+    event DpDeleteXmitInProg (
+                $id: U32 # The ID of the data product
+                tSec: U32 # Generation time in seconds
+                tSub: U32 # Generation time in subseconds
+                dir: U32 # The directory index of the file
+            ) \
+      severity warning low \
+      id 44 \
+      format "Attempted to delete data product ID {},{},{},{} while being transmitted"
+
+    event DpFileDeleteError(
+                            file: string size 80 @< The file
+                            stat: I32
+                          ) \
+      severity warning low \
+      id 45 \
+      format "Couldn't delete file {}, stat {}." \
+      throttle 25
 
 
 

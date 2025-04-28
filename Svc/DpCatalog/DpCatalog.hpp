@@ -118,6 +118,15 @@ namespace Svc {
             U32 cmdSeq //!< The command sequence number
         ) override;
 
+        //! Handler implementation for command DELETE_DP
+        //!
+        //! delete existing DP
+        void DELETE_DP_cmdHandler(FwOpcodeType opCode,  //!< The opcode
+            U32 cmdSeq,           //!< The command sequence number
+            U32 dir,
+            U32 id,
+            U32 tSec,
+            U32 tSub) override;
 
         // ----------------------------------
         // Private data structures
@@ -167,7 +176,7 @@ namespace Svc {
         /// @brief reset the free list
         void resetBinaryTree();
 
-        /// #brief fill  the binary tree from DP files
+        /// @brief fill  the binary tree from DP files
         Fw::CmdResponse fillBinaryTree();
 
         /// @brief reset the tree stack
