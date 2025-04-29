@@ -1074,6 +1074,42 @@ namespace Svc {
 
         this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
     }
+
+    void DpCatalog ::UPDATE_DP_PRIO_cmdHandler(FwOpcodeType opCode,
+        U32 cmdSeq,
+        U32 dir,
+        U32 id,
+        U32 tSec,
+        U32 tSub,
+        U32 prio) {
+
+        // build file name based on the entry to update
+        Fw::FileNameString prioFileName;
+        prioFileName.format(DP_FILENAME_FORMAT,
+            this->m_directories[dir].toChar(),
+            id,
+            tSec,
+            tSub
+        );
+
+        // check to see if file exists
+        bool exists = Os::FileSystem::exists(
+            prioFileName.toChar());
+
+        if (not exists) {
+            // If it doesn't exist, don't continue.
+            // Don't fail the command so a long list of attempts to 
+            // do DP maintenance fail.
+            this->log_WARNING_LO_DpUpdateNoFileError(prioFileName);
+        } else {
+            // if the file exists, delete it from the tree and reinsert
+            // it with the new priority
+            
+        }
+
+        this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+    }
+
     
 
 

@@ -99,6 +99,15 @@ module Svc {
     ) \
       opcode 4
 
+    @ update existing DP priority
+    async command UPDATE_DP_PRIO (
+        dir: U32 # The directory index of the file
+        $id: U32 # The ID of the data product
+        tSec: U32 # Generation time in seconds
+        tSub: U32 # Generation time in subseconds
+        prio: U32 # Updated priority
+    ) \
+      opcode 5
 
     # ----------------------------------------------------------------------
     # Events
@@ -400,7 +409,24 @@ module Svc {
       format "Couldn't delete file {}, stat {}." \
       throttle 25
 
+    event DpUpdateNoFileError(
+                            file: string size 80 @< The file
+                          ) \
+      severity warning low \
+      id 46 \
+      format "Couldn't update priority for file {}, doesn't exist" \
+      throttle 25
 
+    @ DP priority updated
+    event DpPrioUpdated (
+                $id: U32 # The ID of the data product
+                tSec: U32 # Generation time in seconds
+                tSub: U32 # Generation time in subseconds
+                prio: U32  # new priority
+            ) \
+      severity activity low \
+      id 47 \
+      format "Priority updated for product ID {},{},{} to {}"
 
     # ----------------------------------------------------------------------
     # Telemetry

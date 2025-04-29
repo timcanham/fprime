@@ -128,6 +128,18 @@ namespace Svc {
             U32 tSec,
             U32 tSub) override;
 
+        //! Handler implementation for command UPDATE_DP_PRIO
+        //!
+        //! update existing DP priority
+        void UPDATE_DP_PRIO_cmdHandler(FwOpcodeType opCode,  //!< The opcode
+            U32 cmdSeq,           //!< The command sequence number
+            U32 dir,
+            U32 id,
+            U32 tSec,
+            U32 tSub,
+            U32 prio) override;
+
+
         // ----------------------------------
         // Private data structures
         // ----------------------------------
