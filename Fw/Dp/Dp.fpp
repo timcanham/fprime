@@ -13,6 +13,8 @@ module Fw {
     PARTIAL
     @ The transmitted state
     TRANSMITTED
+    @ The deleted state
+    DELETED
   } default UNTRANSMITTED
 
   # ----------------------------------------------------------------------
