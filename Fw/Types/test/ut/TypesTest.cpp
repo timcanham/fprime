@@ -9,6 +9,7 @@
 #include <Fw/Types/String.hpp>
 #include <Fw/Types/StringTemplate.hpp>
 #include <Os/IntervalTimer.hpp>
+#include <Fw/Types/StructSerializable.hpp>
 //
 // Created by mstarch on 12/7/20.
 //
@@ -1244,6 +1245,51 @@ TEST(TypesTest, FormatSpecifierTest) {
     char c = 'A';
     str.format("CHAR: %" PRI_CHAR, c);
     ASSERT_STREQ(str.toChar(), "CHAR: A");
+}
+
+struct SomeStruct {
+    U32 mem1;
+    F32 mem2;
+    char str[10];
+};
+
+using SomeStructTempl = Fw::StructSerializable<SomeStruct>;
+
+TEST(TypesTest,StructSerializableTest) {
+
+    U8 buff[sizeof(SomeStructTempl)];
+    Fw::ExternalSerializeBuffer extBuff(buff,sizeof(buff));
+
+    SomeStruct myStructIn;
+    myStructIn.mem1 = 10;
+    myStructIn.mem2 = 35.0;
+    strncpy(myStructIn.str,"123456789",sizeof(SomeStruct::str));
+
+    SomeStructTempl tmplIn(myStructIn);
+
+    // serialize
+    ASSERT_EQ(Fw::SerializeStatus::FW_SERIALIZE_OK,extBuff.serialize(tmplIn));
+
+    SomeStructTempl tmplOut;
+
+    // deserialize
+    ASSERT_EQ(Fw::SerializeStatus::FW_SERIALIZE_OK,extBuff.deserialize(tmplOut));
+
+    SomeStruct myStructOut;
+    // clear contents
+    memset(&myStructOut,0,sizeof(myStructOut));
+    myStructOut = tmplOut.get();
+
+    // compare
+    ASSERT_EQ(0,::memcmp(
+        reinterpret_cast<const void*>(&myStructIn),
+        reinterpret_cast<const void*>(&myStructOut),
+        sizeof(myStructIn)));
+
+    Fw::String name;
+    tmplOut.toString(name);
+    printf("Typeid: %s\n",name.toChar());
+
 }
 
 TEST(PerformanceTest, F64SerPerfTest) {
