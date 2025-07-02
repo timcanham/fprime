@@ -14,7 +14,7 @@ namespace Fw {
             SERIALIZED_SIZE = sizeof(T)
         };
 
-        StructSerializable();
+        StructSerializable() {}
         StructSerializable(const T& val) { this->m_val = val; }
         StructSerializable(const T* val) { this->m_val = *val; }
         const T& operator=(const T& val) { this->m_val = val; return val;}
