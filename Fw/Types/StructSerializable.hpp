@@ -30,6 +30,7 @@ namespace Fw {
 
         void set(const T& val) { this->m_val = val; }
         const T& get(void) { return m_val; }
+        const T* getPtr(void) {return &m_val;}
 
         SerializeStatus serialize(Fw::SerializeBufferBase& buffer) const {
             return buffer.serialize(reinterpret_cast<const U8*>(&this->m_val), sizeof(T), Serialization::OMIT_LENGTH);
