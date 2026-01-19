@@ -53,6 +53,16 @@ void configureTopology() {
 
     // Command sequencer needs to allocate memory to hold contents of command sequences
     cmdSeq.allocateBuffer(0, mallocator, 5 * 1024);
+
+    // set up table for file dispatcher
+    Svc::FileDispatcherTable fileDispatchTable;
+    fileDispatchTable.numEntries = 1;
+    fileDispatchTable.entries[0].port = 
+        Svc::FileDispatcherCfg::FileDispatchPort::SEQUENCE_FILE_PORT;
+    fileDispatchTable.entries[0].fileExt = ".sqa"; // See Ref/seq for examples
+    fileDispatchTable.entries[0].enabled = true;
+
+    fileDispatcher.configure(fileDispatchTable);
 }
 
 // Public functions for use in main program are namespaced with deployment name Ref

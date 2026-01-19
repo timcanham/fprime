@@ -45,6 +45,7 @@ module Ref {
     instance linuxTimer
     instance comDriver
     instance cmdSeq
+    instance fileDispatcher
 
     # ----------------------------------------------------------------------
     # Pattern graph specifiers
@@ -166,6 +167,8 @@ module Ref {
       # Router <-> FileUplink
       ComCcsds.fprimeRouter.fileOut     -> FileHandling.fileUplink.bufferSendIn
       FileHandling.fileUplink.bufferSendOut -> ComCcsds.fprimeRouter.fileBufferReturnIn
+      FileHandling.fileUplink.fileAnnounce -> fileDispatcher.fileAnnounceRecv
+      fileDispatcher.fileDispatch[Svc.FileDispatcherCfg.FileDispatchPort.SEQUENCE_FILE_PORT] -> cmdSeq.seqDispatchIn
     }
 
     connections FileHandling_DataProducts{
