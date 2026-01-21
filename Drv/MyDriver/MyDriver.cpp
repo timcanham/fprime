@@ -91,6 +91,8 @@ void MyDriver::IsrReport_internalInterfaceHandler(U32 interrupts) {
         }
         // send copied data to user
         this->SendBuffer_out(0,buff);
+        // add data to counter
+        this->m_dataBytes += FIFO_DEPTH;
     }
 }
 
