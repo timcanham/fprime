@@ -25,7 +25,7 @@ class MyDriver final : public MyDriverComponentBase {
     ~MyDriver();
 
     //! Enable driver
-    void enableDriver();
+    void enableDriver(const U32 timerVal);
 
   private:
     // ----------------------------------------------------------------------
@@ -50,7 +50,13 @@ class MyDriver final : public MyDriverComponentBase {
     void IsrReport_internalInterfaceHandler(U32 interrupts) override;
 
     //! static interrupt service routine - required for OS API
+    //! *** invoked in ISR context ***
     static void driverISR(int vector, void* user_ctx);
+    //! member function to handle ISRs
+    void doISR(int vector);
+    //! Counters
+    U64 m_dataBytes;
+    U64 m_timerTicks;
 };
 
 }  // namespace Drv
