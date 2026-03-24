@@ -6,6 +6,7 @@ module Svc {
     STATUS_ERROR
     STATUS_INVALID
     STATUS_BUSY
+    STATUS_LINK_CLOSED
   }
 
   @ Send file response struct
