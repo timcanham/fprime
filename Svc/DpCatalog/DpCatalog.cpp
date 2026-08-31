@@ -600,6 +600,12 @@ DpCatalog::ProcessFileStatus DpCatalog::processFile(const Fw::String& fullFile, 
     // check the state file to see if there is transmit state
     this->getFileState(entry);
 
+    // Skip files that have already been transmitted - they don't need to be in the catalog
+    // If operator wants to retransmit, they can use RETRANSMIT_DP command
+    if (entry.record.get_state() == Fw::DpState::TRANSMITTED) {
+        return ProcessFileStatus::SUCCESS;
+    }
+
     // a duplicate insert updates the tree in place; skip it so pending counters are not double-counted
     if (this->m_dpCatalog.find(entry) == Fw::Success::SUCCESS) {
         this->log_ACTIVITY_HI_DpFileSkipped(fullFile);
@@ -614,7 +620,7 @@ DpCatalog::ProcessFileStatus DpCatalog::processFile(const Fw::String& fullFile, 
         return ProcessFileStatus::QUIT;
     }
 
-    // increment our counters
+    // increment our counters - all entries added to catalog are pending
     this->m_pendingFiles++;
     this->m_pendingDpBytes += entry.record.get_size();
 
@@ -1030,57 +1036,72 @@ void DpCatalog::RETRANSMIT_DP_cmdHandler(FwOpcodeType opCode,
         // Catalog is loaded in memory - work with in-memory structures
 
         // Step 3 & 4: Look for existing entry or create new one
-        DpStateEntry searchEntry;
-        searchEntry.dir = static_cast<FwIndexType>(foundDir);
-        searchEntry.record.set_id(id);
-        searchEntry.record.set_tSec(tSec);
-        searchEntry.record.set_tSub(tSub);
-        searchEntry.record.set_priority(priority);
-        searchEntry.record.set_state(Fw::DpState::UNTRANSMITTED);
+        // We need to search by id/tSec/tSub only, not priority, since priority may be changing
+        // The tree's find() compares priority first, so we must iterate to find by id/time
+        DpStateEntry foundEntry;
+        bool entryExists = false;
 
-        // Try to find the entry in the catalog
-        Fw::Success::T findStat = this->m_dpCatalog.find(searchEntry);
+        for (typename Fw::RedBlackTreeSet<DpStateEntry, DP_MAX_FILES>::ConstIterator iter = this->m_dpCatalog.begin();
+             iter != this->m_dpCatalog.end();
+             ++iter) {
+            if ((*iter).dir == static_cast<FwIndexType>(foundDir) &&
+                (*iter).record.get_id() == id &&
+                (*iter).record.get_tSec() == tSec &&
+                (*iter).record.get_tSub() == tSub) {
+                foundEntry = *iter;
+                entryExists = true;
+                break;
+            }
+        }
 
-        if (findStat == Fw::Success::SUCCESS) {
-            // Entry exists - need to get its current state before modifying
-            // Find the actual entry to check its state
-            bool wasTransmitted = (searchEntry.record.get_state() == Fw::DpState::TRANSMITTED);
+        if (entryExists) {
+            // Entry exists - update it
+            bool wasTransmitted = (foundEntry.record.get_state() == Fw::DpState::TRANSMITTED);
+            U64 oldSize = foundEntry.record.get_size();
 
-            // Remove from tree
-            this->m_dpCatalog.remove(searchEntry);
+            // Remove old entry from tree
+            this->m_dpCatalog.remove(foundEntry);
 
-            // Update the entry
-            searchEntry.record.set_priority(priority);
-            searchEntry.record.set_state(Fw::DpState::UNTRANSMITTED);
-            searchEntry.record.set_blocks(0);
+            // Update the entry with new priority and state
+            foundEntry.record.set_priority(priority);
+            foundEntry.record.set_state(Fw::DpState::UNTRANSMITTED);
+            foundEntry.record.set_blocks(0);
 
             // Re-insert with new priority (tree will re-sort)
-            this->m_dpCatalog.insert(searchEntry);
+            this->m_dpCatalog.insert(foundEntry);
 
             // If it was previously transmitted, increment pending counters
             // since we're making it available for transmission again
             if (wasTransmitted) {
                 this->m_pendingFiles++;
-                this->m_pendingDpBytes += searchEntry.record.get_size();
+                this->m_pendingDpBytes += oldSize;
             }
         } else {
             // Entry doesn't exist - add it
+            DpStateEntry newEntry;
+            newEntry.dir = static_cast<FwIndexType>(foundDir);
+            newEntry.record.set_id(id);
+            newEntry.record.set_tSec(tSec);
+            newEntry.record.set_tSub(tSub);
+            newEntry.record.set_priority(priority);
+            newEntry.record.set_state(Fw::DpState::UNTRANSMITTED);
+
             // Get the file size for the new entry
             FwSizeType fileSize = 0;
             Os::FileSystem::Status sizeStat = Os::FileSystem::getFileSize(fullFilePath.toChar(), fileSize);
             if (sizeStat == Os::FileSystem::OP_OK) {
-                searchEntry.record.set_size(static_cast<U64>(fileSize));
-                bool inserted = this->insertEntry(searchEntry);
+                newEntry.record.set_size(static_cast<U64>(fileSize));
+                bool inserted = this->insertEntry(newEntry);
                 if (inserted) {
                     this->m_pendingFiles++;
-                    this->m_pendingDpBytes += searchEntry.record.get_size();
+                    this->m_pendingDpBytes += newEntry.record.get_size();
                 }
             }
         }
 
         // Also update the state file entry if it exists
         for (FwSizeType line = 0; line < this->m_stateFileEntries; line++) {
-            if (this->m_stateFileData[line].entry.dir == searchEntry.dir &&
+            if (this->m_stateFileData[line].entry.dir == static_cast<FwIndexType>(foundDir) &&
                 this->m_stateFileData[line].entry.record.get_id() == id &&
                 this->m_stateFileData[line].entry.record.get_tSec() == tSec &&
                 this->m_stateFileData[line].entry.record.get_tSub() == tSub) {
