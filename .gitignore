@@ -125,3 +125,4 @@ temp_dir/
 *.exe
 *.out
 *.app
+.claude

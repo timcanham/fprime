@@ -94,6 +94,15 @@ module Svc {
     async command CLEAR_CATALOG \
       opcode 3
 
+    @ Retransmit a data product
+    async command RETRANSMIT_DP (
+      $id: FwDpIdType, @< data product ID
+      tSec: U32, @< time in seconds
+      tSub: U32, @< time in microseconds
+      $priority: U32 @< priority for retransmission
+    ) \
+      opcode 4
+
     # ----------------------------------------------------------------------
     # Events
     # ----------------------------------------------------------------------
@@ -431,6 +440,33 @@ module Svc {
       id 49 \
       format "Failed to format DP file name for {} with status {}" \
       throttle 10
+
+    @ Data product file not found for retransmission
+    event DpFileNotFound(
+                            $id: FwDpIdType @< The DP ID
+                            tSec: U32 @< time seconds
+                            tSub: U32 @< time subseconds
+                          ) \
+      severity warning low \
+      id 50 \
+      format "DP file for ID {} time {}.{} not found"
+
+    @ Data product marked for retransmission
+    event DpMarkedForRetransmit(
+                            file: string size FileNameStringSize @< The file
+                            $priority: U32 @< new priority
+                          ) \
+      severity activity high \
+      id 51 \
+      format "DP file {} marked for retransmit with priority {}"
+
+    @ Cannot retransmit DP currently being transmitted
+    event DpCurrentlyTransmitting(
+                            file: string size FileNameStringSize @< The file
+                          ) \
+      severity warning low \
+      id 52 \
+      format "Cannot retransmit DP file {} while it is currently being transmitted"
 
 
     # ----------------------------------------------------------------------

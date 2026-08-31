@@ -131,6 +131,17 @@ class DpCatalog final : public DpCatalogComponentBase {
                                   U32 cmdSeq            //!< The command sequence number
                                   ) override;
 
+    //! Handler implementation for command RETRANSMIT_DP
+    //!
+    //! Retransmit a data product
+    void RETRANSMIT_DP_cmdHandler(FwOpcodeType opCode,  //!< The opcode
+                                  U32 cmdSeq,            //!< The command sequence number
+                                  FwDpIdType id,         //!< data product ID
+                                  U32 tSec,              //!< time in seconds
+                                  U32 tSub,              //!< time in microseconds
+                                  U32 priority           //!< priority for retransmission
+                                  ) override;
+
     // ----------------------------------
     // Private data structures
     // ----------------------------------

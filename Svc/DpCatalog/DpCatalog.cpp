@@ -200,10 +200,14 @@ void DpCatalog::getFileState(DpStateEntry& entry) {
     FW_ASSERT(this->m_stateFileData != nullptr);
     // search the file state data for the entry
     for (FwSizeType line = 0; line < this->m_stateFileEntries; line++) {
-        // check for a match (compare dir, then id, priority, & time)
-        if (this->m_stateFileData[line].entry.dir == entry.dir && this->m_stateFileData[line].entry == entry) {
-            // update the transmitted state
+        // check for a match (compare dir, id, and time - NOT priority since RETRANSMIT_DP may change it)
+        if (this->m_stateFileData[line].entry.dir == entry.dir &&
+            this->m_stateFileData[line].entry.record.get_id() == entry.record.get_id() &&
+            this->m_stateFileData[line].entry.record.get_tSec() == entry.record.get_tSec() &&
+            this->m_stateFileData[line].entry.record.get_tSub() == entry.record.get_tSub()) {
+            // update the transmitted state, priority, and blocks from state file
             entry.record.set_state(this->m_stateFileData[line].entry.record.get_state());
+            entry.record.set_priority(this->m_stateFileData[line].entry.record.get_priority());
             entry.record.set_blocks(this->m_stateFileData[line].entry.record.get_blocks());
             // mark it as visited for later pruning if necessary
             this->m_stateFileData[line].visited = true;
@@ -970,6 +974,194 @@ void DpCatalog ::CLEAR_CATALOG_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
     this->resetCatalog();
     this->resetStateFileData();
 
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+}
+
+void DpCatalog::RETRANSMIT_DP_cmdHandler(FwOpcodeType opCode,
+                                         U32 cmdSeq,
+                                         FwDpIdType id,
+                                         U32 tSec,
+                                         U32 tSub,
+                                         U32 priority) {
+    // Step 1: Build the filename and check if file exists
+    bool fileFound = false;
+    FwSizeType foundDir = DP_MAX_DIRECTORIES;
+    Fw::FileNameString fullFilePath;
+
+    // Search all configured directories for the file
+    for (FwSizeType dir = 0; dir < this->m_numDirectories; dir++) {
+        Fw::FormatStatus formatStat =
+            fullFilePath.format(DP_FILENAME_FORMAT, this->m_directories[dir].toChar(), id, tSec, tSub);
+
+        if (formatStat != Fw::FormatStatus::SUCCESS) {
+            continue;
+        }
+
+        // Check if file exists
+        FwSizeType fileSize = 0;
+        Os::FileSystem::Status sizeStat = Os::FileSystem::getFileSize(fullFilePath.toChar(), fileSize);
+
+        if (sizeStat == Os::FileSystem::OP_OK) {
+            fileFound = true;
+            foundDir = dir;
+            break;
+        }
+    }
+
+    // If file doesn't exist, emit warning and return success
+    if (!fileFound) {
+        this->log_WARNING_LO_DpFileNotFound(id, tSec, tSub);
+        this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+        return;
+    }
+
+    // Check if this DP is currently being transmitted - if so, don't modify it
+    if (this->m_hasCurrentXmit && this->m_currentXmitEntry.dir == static_cast<FwIndexType>(foundDir) &&
+        this->m_currentXmitEntry.record.get_id() == id && this->m_currentXmitEntry.record.get_tSec() == tSec &&
+        this->m_currentXmitEntry.record.get_tSub() == tSub) {
+        // This file is currently being transmitted - don't interrupt it
+        this->log_WARNING_LO_DpCurrentlyTransmitting(fullFilePath);
+        this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+        return;
+    }
+
+    // Step 2: File exists - check if catalog has been loaded
+    if (this->m_catalogBuilt && this->m_stateFileData != nullptr) {
+        // Catalog is loaded in memory - work with in-memory structures
+
+        // Step 3 & 4: Look for existing entry or create new one
+        DpStateEntry searchEntry;
+        searchEntry.dir = static_cast<FwIndexType>(foundDir);
+        searchEntry.record.set_id(id);
+        searchEntry.record.set_tSec(tSec);
+        searchEntry.record.set_tSub(tSub);
+        searchEntry.record.set_priority(priority);
+        searchEntry.record.set_state(Fw::DpState::UNTRANSMITTED);
+
+        // Try to find the entry in the catalog
+        Fw::Success::T findStat = this->m_dpCatalog.find(searchEntry);
+
+        if (findStat == Fw::Success::SUCCESS) {
+            // Entry exists - need to get its current state before modifying
+            // Find the actual entry to check its state
+            bool wasTransmitted = (searchEntry.record.get_state() == Fw::DpState::TRANSMITTED);
+
+            // Remove from tree
+            this->m_dpCatalog.remove(searchEntry);
+
+            // Update the entry
+            searchEntry.record.set_priority(priority);
+            searchEntry.record.set_state(Fw::DpState::UNTRANSMITTED);
+            searchEntry.record.set_blocks(0);
+
+            // Re-insert with new priority (tree will re-sort)
+            this->m_dpCatalog.insert(searchEntry);
+
+            // If it was previously transmitted, increment pending counters
+            // since we're making it available for transmission again
+            if (wasTransmitted) {
+                this->m_pendingFiles++;
+                this->m_pendingDpBytes += searchEntry.record.get_size();
+            }
+        } else {
+            // Entry doesn't exist - add it
+            // Get the file size for the new entry
+            FwSizeType fileSize = 0;
+            Os::FileSystem::Status sizeStat = Os::FileSystem::getFileSize(fullFilePath.toChar(), fileSize);
+            if (sizeStat == Os::FileSystem::OP_OK) {
+                searchEntry.record.set_size(static_cast<U64>(fileSize));
+                bool inserted = this->insertEntry(searchEntry);
+                if (inserted) {
+                    this->m_pendingFiles++;
+                    this->m_pendingDpBytes += searchEntry.record.get_size();
+                }
+            }
+        }
+
+        // Also update the state file entry if it exists
+        for (FwSizeType line = 0; line < this->m_stateFileEntries; line++) {
+            if (this->m_stateFileData[line].entry.dir == searchEntry.dir &&
+                this->m_stateFileData[line].entry.record.get_id() == id &&
+                this->m_stateFileData[line].entry.record.get_tSec() == tSec &&
+                this->m_stateFileData[line].entry.record.get_tSub() == tSub) {
+                this->m_stateFileData[line].entry.record.set_state(Fw::DpState::UNTRANSMITTED);
+                this->m_stateFileData[line].entry.record.set_priority(priority);
+                this->m_stateFileData[line].entry.record.set_blocks(0);
+                this->m_stateFileData[line].visited = true;
+                break;
+            }
+        }
+
+        // Write updated state back to file
+        this->pruneAndWriteStateFile();
+
+    } else {
+        // Step 5: Catalog not loaded - modify state file directly on disk
+
+        // Check initialization
+        if (!this->checkInit()) {
+            this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::EXECUTION_ERROR);
+            return;
+        }
+
+        // Load the state file if we haven't already
+        if (this->m_stateFileData == nullptr || this->m_stateFileEntries == 0) {
+            if (this->m_stateFile.length() == 0) {
+                // No state file configured - can't do anything
+                this->log_WARNING_LO_NoStateFileSpecified();
+                this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+                return;
+            }
+
+            // Temporarily load state file
+            this->resetStateFileData();
+            Fw::CmdResponse loadResp = this->loadStateFile();
+            if (loadResp != Fw::CmdResponse::OK) {
+                this->cmdResponse_out(opCode, cmdSeq, loadResp);
+                return;
+            }
+        }
+
+        // Search for existing entry in state file data
+        bool foundEntry = false;
+        for (FwSizeType line = 0; line < this->m_stateFileEntries; line++) {
+            if (this->m_stateFileData[line].entry.dir == static_cast<FwIndexType>(foundDir) &&
+                this->m_stateFileData[line].entry.record.get_id() == id &&
+                this->m_stateFileData[line].entry.record.get_tSec() == tSec &&
+                this->m_stateFileData[line].entry.record.get_tSub() == tSub) {
+                // Update existing entry
+                this->m_stateFileData[line].entry.record.set_state(Fw::DpState::UNTRANSMITTED);
+                this->m_stateFileData[line].entry.record.set_priority(priority);
+                this->m_stateFileData[line].entry.record.set_blocks(0);
+                this->m_stateFileData[line].visited = true;
+                foundEntry = true;
+                break;
+            }
+        }
+
+        if (!foundEntry && this->m_stateFileEntries < this->m_numDpSlots) {
+            // Add new entry to state file data
+            FwSizeType fileSize = 0;
+            Os::FileSystem::getFileSize(fullFilePath.toChar(), fileSize);
+
+            this->m_stateFileData[this->m_stateFileEntries].used = true;
+            this->m_stateFileData[this->m_stateFileEntries].visited = true;
+            this->m_stateFileData[this->m_stateFileEntries].entry.dir = static_cast<FwIndexType>(foundDir);
+            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_id(id);
+            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_tSec(tSec);
+            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_tSub(tSub);
+            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_priority(priority);
+            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_state(Fw::DpState::UNTRANSMITTED);
+            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_size(static_cast<U64>(fileSize));
+            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_blocks(0);
+            this->m_stateFileEntries++;
+        }
+
+        // Write state file back to disk
+        this->pruneAndWriteStateFile();
+    }
+
+    this->log_ACTIVITY_HI_DpMarkedForRetransmit(fullFilePath, priority);
     this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 

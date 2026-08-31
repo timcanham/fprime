@@ -330,6 +330,36 @@ TEST(OffNominal, MalformedFile) {
     tester.test_MalformedFile();
 }
 
+TEST(NominalManual, RetransmitDp_FileNotFound) {
+    Svc::DpCatalogTester tester;
+    tester.test_RetransmitDp_FileNotFound();
+}
+
+TEST(NominalManual, RetransmitDp_BeforeCatalogBuilt) {
+    Svc::DpCatalogTester tester;
+    tester.test_RetransmitDp_BeforeCatalogBuilt();
+}
+
+TEST(NominalManual, RetransmitDp_ExistingEntry) {
+    Svc::DpCatalogTester tester;
+    tester.test_RetransmitDp_ExistingEntry();
+}
+
+TEST(NominalManual, RetransmitDp_NewEntry) {
+    Svc::DpCatalogTester tester;
+    tester.test_RetransmitDp_NewEntry();
+}
+
+TEST(NominalManual, RetransmitDp_CurrentlyTransmitting) {
+    Svc::DpCatalogTester tester;
+    tester.test_RetransmitDp_CurrentlyTransmitting();
+}
+
+TEST(NominalManual, RetransmitDp_PriorityHandling) {
+    Svc::DpCatalogTester tester;
+    tester.test_RetransmitDp_PriorityHandling();
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     STest::Random::seed();

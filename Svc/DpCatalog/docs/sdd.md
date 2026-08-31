@@ -115,6 +115,7 @@ During initialization, the configuration function takes a set of parameters:
 | |wait|Wait for the transmission to complete before sending command completion status. Used when a sequence wishes to wait for completion before issuing subsequent commands.
 |`STOP_XMIT_CATALOG`|none|Stop existing catalog transmission. Will be completed when the current file is done transmitting.
 |`CLEAR_CATALOG`|none|Clears existing RAM catalog and resets downlink state. Should be followed by `BUILD_CATALOG`. Used for recovery if state file gets corrupted or out of sync with file system contents. |
+|`RETRANSMIT_DP`|U32 data product ID, U32 time in seconds, U32 time in microseconds, U32 priority|This will mark the specified data product for retransmission. If the file does not exist, it will have no effect. If the file exists, it will be marked for retransmit based on the priority argument.
 
 #### Sequence of Commands
 
@@ -146,5 +147,63 @@ When data products are downlinked, the tree is traversed in priority order. As e
 
 When a data product is downlinked, it is marked in the node as completed, but the state is also written to a file so that downlinked state is preserved across restarts of the software. When the catalog is built, the state file is first read into a data structure in memory.
 
+#### 3.7.4 Retransmission
+
+The `RETRANSMIT_DP` command does the following:
+
+1. Check for the existence of the data product file. If it doesn't exist, emit a WARNING_LO event.
+2. If the file exists, see if the state file has been loaded into memory. If so, look for the entry for the data product.
+3. If the entry exists, update the transmitted status to `UNTRANSMITTED` and set the priority to the priority argument.
+4. If the entry doesn't exist, add a new entry and set the status to `UNTRANSMITTED` and set the priority to the priority argument.
+5. If the state file hasn't been loaded into memory (i.e., `BUILD_CATALOG` has not been executed), modify the file in storage according to steps 3 & 4. This allows the command to be issued at any time without requiring `BUILD_CATALOG` to have been run first.
+
 ## 6 Unit Testing
+
+The following unit tests verify DpCatalog component functionality:
+
+### 6.1 Nominal Tests
+
+| Test Name | Description | Verification |
+|-----------|-------------|--------------|
+| `initTest` | Component initialization smoke test | Verifies component can be configured and torn down successfully |
+| `TreeTestManual1` | Manual test of binary tree with specific entry set #1 | Verifies tree sorting and traversal in priority order |
+| `TreeTestManual2` | Manual test of binary tree with specific entry set #2 | Verifies tree sorting and traversal in priority order |
+| `TreeTestManual3` | Manual test of binary tree with specific entry set #3 | Verifies tree sorting and traversal in priority order |
+| `TreeTestManual5` | Manual test of binary tree with specific entry set #5 | Verifies tree sorting and traversal in priority order |
+| `TreeTestRandom` | Random testing of tree with random priority, time, ID, and combined values | Verifies tree correctly sorts entries by priority, time, and ID in all combinations |
+| `TreeTestRandomTransmitted` | Random testing of tree with transmitted and untransmitted entries | Verifies transmitted entries are skipped during tree traversal |
+| `OneDp` | Single data product catalog build and transmit | Verifies basic catalog build and file downlink request |
+| `FiveDp` | Five data products across two directories with different priorities | Verifies correct priority-based ordering across multiple directories |
+| `TwoDp_OneNotify` | Two data products with one runtime addition | Verifies runtime addition of DP via addToCat port |
+| `SixDp_ThreeNotify` | Six data products with three runtime additions | Verifies multiple runtime additions during active transmission |
+| `SixDp_ThreeStop` | Six data products with stop after three transmissions | Verifies STOP_XMIT_CATALOG command halts transmission |
+| `TwoDp_OneStop` | Two data products with stop after one transmission | Verifies STOP_XMIT_CATALOG command during transmission |
+| `RandomDp` | Random data product generation and transmission | Verifies catalog handles randomly generated DP sets |
+| `XmitBeforeInit` | Transmission command before component initialization | Verifies error handling for uninitialized component |
+| `StopWarn` | Stop command when transmission not active | Verifies warning event when stopping non-active transmission |
+| `CompareEntries` | Unit test of DpStateEntry comparison operator | Verifies priority, time, and ID comparison logic |
+| `PingIn` | Health ping port test | Verifies ping input/output port functionality |
+| `BadFileDone` | Invalid file completion notification | Verifies error handling for invalid fileDone response |
+| `NonDpFilesDoNotConsumeSlots` | Non-DP files in directory don't consume catalog slots | Verifies only valid DP files are added to catalog |
+
+### 6.2 Off-Nominal Tests
+
+| Test Name | Description | Verification |
+|-----------|-------------|--------------|
+| `ProcessFileInvalidDir` | File in unmanaged directory | Verifies error event when file is not in configured directory |
+| `TruncatedDpRejected` | Truncated DP file with incomplete header | Verifies truncated files are rejected during catalog build |
+| `NonCanonicalDpRejected` | DP file with name not matching header metadata | Verifies files with invalid names are rejected |
+| `BadHeaderHashRejected` | DP file with corrupted header hash | Verifies files with bad CRC are rejected |
+| `MalformedFile` | Corrupted state file with malformed data | Verifies error handling for corrupted state file |
+
+### 6.3 RETRANSMIT_DP Command Tests
+
+| Test Name | Description | Verification |
+|-----------|-------------|--------------|
+| `RetransmitDp_FileNotFound` | RETRANSMIT_DP for non-existent file | Verifies WARNING_LO event is emitted and command returns OK without modifying catalog |
+| `RetransmitDp_BeforeCatalogBuilt` | RETRANSMIT_DP before BUILD_CATALOG is called | Verifies state file is modified with new priority, and when BUILD_CATALOG runs, the DP is added with the updated priority from state file instead of file header |
+| `RetransmitDp_ExistingEntry` | RETRANSMIT_DP of existing catalog entry with new priority | Verifies the existing entry is removed and re-inserted with new priority, causing tree re-sort for correct transmission order |
+| `RetransmitDp_NewEntry` | RETRANSMIT_DP to add DP created after BUILD_CATALOG | Verifies a new entry is created in the catalog with the specified priority |
+| `RetransmitDp_CurrentlyTransmitting` | RETRANSMIT_DP while DP is actively transmitting | Verifies WARNING_LO event is emitted and DP is not modified during active transmission |
+| `RetransmitDp_PriorityHandling` | RETRANSMIT_DP priority change during active transmission | Verifies that when a DP priority is changed while another file transmits, the updated entry is transmitted in correct priority order after current transmission completes |
 

@@ -912,4 +912,245 @@ void DpCatalogTester::test_BadHeaderHashRejected() {
     this->component.shutdown();
 }
 
+void DpCatalogTester::test_RetransmitDp_FileNotFound() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Retransmit_FileNotFound");
+    Fw::FileNameString stateFile("./DpTest_Retransmit_FileNotFound/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Try to retransmit a DP that doesn't exist
+    this->sendCmd_RETRANSMIT_DP(0, 10, 0x999, 2000, 200, 5);
+    this->component.doDispatch();
+
+    // Should get OK response and file not found event
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_CMD_RESPONSE(0, DpCatalog::OPCODE_RETRANSMIT_DP, 10, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpFileNotFound_SIZE(1);
+    ASSERT_EVENTS_DpFileNotFound(0, 0x999, 2000, 200);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_RetransmitDp_BeforeCatalogBuilt() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Retransmit_BeforeBuild");
+    Fw::FileNameString stateFile("./DpTest_Retransmit_BeforeBuild/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create a DP file with UNTRANSMITTED state
+    Fw::Time time(1000, 100);
+    Fw::String dpFile = this->genDP(0x123, 10, time, 100, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Retransmit BEFORE building catalog - should modify state file directly to set new priority
+    this->sendCmd_RETRANSMIT_DP(0, 10, 0x123, 1000, 100, 5);
+    this->component.doDispatch();
+
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_CMD_RESPONSE(0, DpCatalog::OPCODE_RETRANSMIT_DP, 10, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpMarkedForRetransmit_SIZE(1);
+
+    // Now build catalog - the DP should be in the catalog with new priority from state file
+    this->sendCmd_BUILD_CATALOG(0, 11);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(2);
+    ASSERT_CMD_RESPONSE(1, DpCatalog::OPCODE_BUILD_CATALOG, 11, Fw::CmdResponse::OK);
+
+    // Should have one pending file
+    ASSERT_EVENTS_DpFileAdded_SIZE(1);
+
+    // Start transmission and verify it transmits with new priority (5 from RETRANSMIT, not 10 from file)
+    this->sendCmd_START_XMIT_CATALOG(0, 12, Fw::Wait::NO_WAIT, false);
+    this->component.doDispatch();
+    ASSERT_from_fileOut_SIZE(1);
+    ASSERT_EVENTS_SendingProduct_SIZE(1);
+    ASSERT_EVENTS_SendingProduct(0, dpFile.toChar(), 100 + Fw::DpContainer::MIN_PACKET_SIZE, 5);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_RetransmitDp_ExistingEntry() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Retransmit_Existing");
+    Fw::FileNameString stateFile("./DpTest_Retransmit_Existing/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create a DP with priority 10
+    Fw::Time time(1000, 100);
+    Fw::String dpFile = this->genDP(0x123, 10, time, 100, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Build catalog
+    this->sendCmd_BUILD_CATALOG(0, 10);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_EVENTS_DpFileAdded_SIZE(1);
+
+    // Retransmit the DP with new priority (3) - should update existing entry
+    this->sendCmd_RETRANSMIT_DP(0, 11, 0x123, 1000, 100, 3);
+    this->component.doDispatch();
+
+    ASSERT_CMD_RESPONSE_SIZE(2);
+    ASSERT_CMD_RESPONSE(1, DpCatalog::OPCODE_RETRANSMIT_DP, 11, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpMarkedForRetransmit_SIZE(1);
+
+    // Start transmission - should now transmit with new priority (3 instead of 10)
+    this->sendCmd_START_XMIT_CATALOG(0, 12, Fw::Wait::NO_WAIT, false);
+    this->component.doDispatch();
+    ASSERT_from_fileOut_SIZE(1);
+    ASSERT_EVENTS_SendingProduct_SIZE(1);
+    ASSERT_EVENTS_SendingProduct(0, dpFile.toChar(), 100 + Fw::DpContainer::MIN_PACKET_SIZE, 3);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_RetransmitDp_NewEntry() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Retransmit_New");
+    Fw::FileNameString stateFile("./DpTest_Retransmit_New/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create one DP initially
+    Fw::Time time1(1000, 100);
+    Fw::String dpFile1 = this->genDP(0x123, 10, time1, 100, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile1.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Build catalog - first DP added
+    this->sendCmd_BUILD_CATALOG(0, 10);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_EVENTS_DpFileAdded_SIZE(1);
+
+    // Create second DP file after catalog is built
+    Fw::Time time2(2000, 200);
+    Fw::String dpFile2 = this->genDP(0x456, 20, time2, 200, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile2.toChar(), "");
+
+    // Add the new file with RETRANSMIT_DP at higher priority than first file
+    this->sendCmd_RETRANSMIT_DP(0, 11, 0x456, 2000, 200, 5);
+    this->component.doDispatch();
+
+    ASSERT_CMD_RESPONSE_SIZE(2);
+    ASSERT_CMD_RESPONSE(1, DpCatalog::OPCODE_RETRANSMIT_DP, 11, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpMarkedForRetransmit_SIZE(1);
+
+    // Start transmission - should transmit second file first (priority 5 < 10)
+    this->sendCmd_START_XMIT_CATALOG(0, 12, Fw::Wait::NO_WAIT, false);
+    this->component.doDispatch();
+    ASSERT_from_fileOut_SIZE(1);
+    ASSERT_EVENTS_SendingProduct_SIZE(1);
+    ASSERT_EVENTS_SendingProduct(0, dpFile2.toChar(), 200 + Fw::DpContainer::MIN_PACKET_SIZE, 5);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_RetransmitDp_CurrentlyTransmitting() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Retransmit_CurrentXmit");
+    Fw::FileNameString stateFile("./DpTest_Retransmit_CurrentXmit/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create a DP
+    Fw::Time time(1000, 100);
+    Fw::String dpFile = this->genDP(0x123, 10, time, 100, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Build catalog
+    this->sendCmd_BUILD_CATALOG(0, 10);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_EVENTS_DpFileAdded_SIZE(1);
+
+    // Start transmission - file will start transmitting
+    this->m_autoFileDone = false;  // Don't auto-complete
+    this->sendCmd_START_XMIT_CATALOG(0, 11, Fw::Wait::NO_WAIT, false);
+    this->component.doDispatch();
+    ASSERT_from_fileOut_SIZE(1);
+
+    // Try to retransmit while it's currently transmitting
+    this->sendCmd_RETRANSMIT_DP(0, 12, 0x123, 1000, 100, 5);
+    this->component.doDispatch();
+
+    // Should get OK response but warning event (3 responses: BUILD, START_XMIT, RETRANSMIT)
+    ASSERT_CMD_RESPONSE_SIZE(3);
+    ASSERT_CMD_RESPONSE(2, DpCatalog::OPCODE_RETRANSMIT_DP, 12, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpCurrentlyTransmitting_SIZE(1);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_RetransmitDp_PriorityHandling() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Retransmit_Priority");
+    Fw::FileNameString stateFile("./DpTest_Retransmit_Priority/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create three DPs with different priorities
+    Fw::Time time1(1000, 100);
+    Fw::Time time2(2000, 200);
+    Fw::Time time3(3000, 300);
+    Fw::String dpFile1 = this->genDP(0x111, 10, time1, 100, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    Fw::String dpFile2 = this->genDP(0x222, 20, time2, 200, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    Fw::String dpFile3 = this->genDP(0x333, 30, time3, 300, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile1.toChar(), "");
+    ASSERT_STRNE(dpFile2.toChar(), "");
+    ASSERT_STRNE(dpFile3.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Build catalog
+    this->sendCmd_BUILD_CATALOG(0, 10);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_EVENTS_DpFileAdded_SIZE(3);
+
+    // Start transmission
+    this->m_autoFileDone = false;
+    this->sendCmd_START_XMIT_CATALOG(0, 11, Fw::Wait::NO_WAIT, false);
+    this->component.doDispatch();
+
+    // First file should be priority 10 (dpFile1)
+    ASSERT_from_fileOut_SIZE(1);
+    ASSERT_EVENTS_SendingProduct_SIZE(1);
+    ASSERT_EVENTS_SendingProduct(0, dpFile1.toChar(), 100 + Fw::DpContainer::MIN_PACKET_SIZE, 10);
+
+    // While first file is transmitting, retransmit third file with higher priority (priority 5)
+    this->sendCmd_RETRANSMIT_DP(0, 12, 0x333, 3000, 300, 5);
+    this->component.doDispatch();
+    // 3 responses: BUILD, START_XMIT, RETRANSMIT
+    ASSERT_CMD_RESPONSE_SIZE(3);
+    ASSERT_EVENTS_DpMarkedForRetransmit_SIZE(1);
+
+    // Complete first file transmission
+    Svc::SendFileResponse resp(Svc::SendFileStatus::STATUS_OK, 0);
+    this->invoke_to_fileDone(0, resp);
+    this->component.doDispatch();
+
+    // Next file should be the retransmitted one with priority 5 (dpFile3)
+    ASSERT_from_fileOut_SIZE(2);
+    ASSERT_EVENTS_SendingProduct_SIZE(2);
+    ASSERT_EVENTS_SendingProduct(1, dpFile3.toChar(), 300 + Fw::DpContainer::MIN_PACKET_SIZE, 5);
+
+    // Complete second transmission
+    this->invoke_to_fileDone(0, resp);
+    this->component.doDispatch();
+
+    // Final file should be priority 20 (dpFile2)
+    ASSERT_from_fileOut_SIZE(3);
+    ASSERT_EVENTS_SendingProduct_SIZE(3);
+    ASSERT_EVENTS_SendingProduct(2, dpFile2.toChar(), 200 + Fw::DpContainer::MIN_PACKET_SIZE, 20);
+
+    this->component.shutdown();
+}
+
 }  // namespace Svc
