@@ -163,6 +163,13 @@ class DpCatalogTester : public DpCatalogGTestBase {
     void test_RetransmitDp_NewEntry();
     void test_RetransmitDp_CurrentlyTransmitting();
     void test_RetransmitDp_PriorityHandling();
+
+    void test_ReprioritizeDp_FileNotFound();
+    void test_ReprioritizeDp_BeforeCatalogBuilt();
+    void test_ReprioritizeDp_ExistingEntry();
+    void test_ReprioritizeDp_AlreadyTransmitted();
+    void test_ReprioritizeDp_CurrentlyTransmitting();
+    void test_ReprioritizeDp_NewEntry();
 };
 
 }  // namespace Svc

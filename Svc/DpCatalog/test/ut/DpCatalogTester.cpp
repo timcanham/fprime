@@ -1153,4 +1153,221 @@ void DpCatalogTester::test_RetransmitDp_PriorityHandling() {
     this->component.shutdown();
 }
 
+void DpCatalogTester::test_ReprioritizeDp_FileNotFound() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Reprioritize_FileNotFound");
+    Fw::FileNameString stateFile("./DpTest_Reprioritize_FileNotFound/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Try to reprioritize a DP that doesn't exist
+    this->sendCmd_REPRIORITIZE_DP(0, 10, 0x999, 2000, 200, 5);
+    this->component.doDispatch();
+
+    // Should get OK response and file not found event
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_CMD_RESPONSE(0, DpCatalog::OPCODE_REPRIORITIZE_DP, 10, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpFileNotFound_SIZE(1);
+    ASSERT_EVENTS_DpFileNotFound(0, 0x999, 2000, 200);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_ReprioritizeDp_BeforeCatalogBuilt() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Reprioritize_BeforeBuild");
+    Fw::FileNameString stateFile("./DpTest_Reprioritize_BeforeBuild/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create a DP file with UNTRANSMITTED state and priority 10
+    Fw::Time time(1000, 100);
+    Fw::String dpFile = this->genDP(0x123, 10, time, 100, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Reprioritize BEFORE building catalog - should modify state file directly to set new priority
+    this->sendCmd_REPRIORITIZE_DP(0, 10, 0x123, 1000, 100, 5);
+    this->component.doDispatch();
+
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_CMD_RESPONSE(0, DpCatalog::OPCODE_REPRIORITIZE_DP, 10, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpReprioritized_SIZE(1);
+
+    // Now build catalog - the DP should be in the catalog with new priority from state file
+    this->sendCmd_BUILD_CATALOG(0, 11);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(2);
+    ASSERT_CMD_RESPONSE(1, DpCatalog::OPCODE_BUILD_CATALOG, 11, Fw::CmdResponse::OK);
+
+    // Should have one pending file
+    ASSERT_EVENTS_DpFileAdded_SIZE(1);
+
+    // Start transmission and verify it transmits with new priority (5 from REPRIORITIZE, not 10 from file)
+    this->sendCmd_START_XMIT_CATALOG(0, 12, Fw::Wait::NO_WAIT, false);
+    this->component.doDispatch();
+    ASSERT_from_fileOut_SIZE(1);
+    ASSERT_EVENTS_SendingProduct_SIZE(1);
+    ASSERT_EVENTS_SendingProduct(0, dpFile.toChar(), 100 + Fw::DpContainer::MIN_PACKET_SIZE, 5);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_ReprioritizeDp_ExistingEntry() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Reprioritize_Existing");
+    Fw::FileNameString stateFile("./DpTest_Reprioritize_Existing/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create a DP with priority 10
+    Fw::Time time(1000, 100);
+    Fw::String dpFile = this->genDP(0x123, 10, time, 100, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Build catalog
+    this->sendCmd_BUILD_CATALOG(0, 10);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_EVENTS_DpFileAdded_SIZE(1);
+
+    // Reprioritize the DP with new priority (3) - should update existing entry
+    this->sendCmd_REPRIORITIZE_DP(0, 11, 0x123, 1000, 100, 3);
+    this->component.doDispatch();
+
+    ASSERT_CMD_RESPONSE_SIZE(2);
+    ASSERT_CMD_RESPONSE(1, DpCatalog::OPCODE_REPRIORITIZE_DP, 11, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpReprioritized_SIZE(1);
+
+    // Start transmission - should now transmit with new priority (3 instead of 10)
+    this->sendCmd_START_XMIT_CATALOG(0, 12, Fw::Wait::NO_WAIT, false);
+    this->component.doDispatch();
+    ASSERT_from_fileOut_SIZE(1);
+    ASSERT_EVENTS_SendingProduct_SIZE(1);
+    ASSERT_EVENTS_SendingProduct(0, dpFile.toChar(), 100 + Fw::DpContainer::MIN_PACKET_SIZE, 3);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_ReprioritizeDp_AlreadyTransmitted() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Reprioritize_AlreadyXmit");
+    Fw::FileNameString stateFile("./DpTest_Reprioritize_AlreadyXmit/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create a DP with TRANSMITTED state in the file
+    Fw::Time time(1000, 100);
+    Fw::String dpFile = this->genDP(0x123, 10, time, 100, Fw::DpState::TRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Build catalog - DP will be skipped since it's already transmitted
+    this->sendCmd_BUILD_CATALOG(0, 10);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_EVENTS_DpFileSkipped_SIZE(1);
+
+    // Reprioritize the already-transmitted DP
+    // Since there's no state file initially and the DP is not in the catalog,
+    // the command will add it as a new entry (which is correct behavior -
+    // it allows re-transmitting a previously transmitted DP with a new priority)
+    this->sendCmd_REPRIORITIZE_DP(0, 11, 0x123, 1000, 100, 5);
+    this->component.doDispatch();
+
+    ASSERT_CMD_RESPONSE_SIZE(2);
+    ASSERT_CMD_RESPONSE(1, DpCatalog::OPCODE_REPRIORITIZE_DP, 11, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpReprioritized_SIZE(1);
+
+    // Start transmission - the reprioritized DP should now be transmitted
+    this->sendCmd_START_XMIT_CATALOG(0, 12, Fw::Wait::NO_WAIT, false);
+    this->component.doDispatch();
+    ASSERT_from_fileOut_SIZE(1);
+    ASSERT_EVENTS_SendingProduct_SIZE(1);
+    ASSERT_EVENTS_SendingProduct(0, dpFile.toChar(), 100 + Fw::DpContainer::MIN_PACKET_SIZE, 5);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_ReprioritizeDp_CurrentlyTransmitting() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Reprioritize_CurrentXmit");
+    Fw::FileNameString stateFile("./DpTest_Reprioritize_CurrentXmit/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create a DP
+    Fw::Time time(1000, 100);
+    Fw::String dpFile = this->genDP(0x123, 10, time, 100, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Build catalog
+    this->sendCmd_BUILD_CATALOG(0, 10);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_EVENTS_DpFileAdded_SIZE(1);
+
+    // Start transmission - file will start transmitting
+    this->m_autoFileDone = false;  // Don't auto-complete
+    this->sendCmd_START_XMIT_CATALOG(0, 11, Fw::Wait::NO_WAIT, false);
+    this->component.doDispatch();
+    ASSERT_from_fileOut_SIZE(1);
+
+    // Try to reprioritize while it's currently transmitting
+    this->sendCmd_REPRIORITIZE_DP(0, 12, 0x123, 1000, 100, 5);
+    this->component.doDispatch();
+
+    // Should get OK response but warning event (3 responses: BUILD, START_XMIT, REPRIORITIZE)
+    ASSERT_CMD_RESPONSE_SIZE(3);
+    ASSERT_CMD_RESPONSE(2, DpCatalog::OPCODE_REPRIORITIZE_DP, 12, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpCurrentlyTransmitting_SIZE(1);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_ReprioritizeDp_NewEntry() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Reprioritize_New");
+    Fw::FileNameString stateFile("./DpTest_Reprioritize_New/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create one DP initially
+    Fw::Time time1(1000, 100);
+    Fw::String dpFile1 = this->genDP(0x123, 10, time1, 100, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile1.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Build catalog - first DP added
+    this->sendCmd_BUILD_CATALOG(0, 10);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_EVENTS_DpFileAdded_SIZE(1);
+
+    // Create second DP file after catalog is built
+    Fw::Time time2(2000, 200);
+    Fw::String dpFile2 = this->genDP(0x456, 20, time2, 200, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile2.toChar(), "");
+
+    // Add the new file with REPRIORITIZE_DP at higher priority than first file
+    this->sendCmd_REPRIORITIZE_DP(0, 11, 0x456, 2000, 200, 5);
+    this->component.doDispatch();
+
+    ASSERT_CMD_RESPONSE_SIZE(2);
+    ASSERT_CMD_RESPONSE(1, DpCatalog::OPCODE_REPRIORITIZE_DP, 11, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpReprioritized_SIZE(1);
+
+    // Start transmission - should transmit second file first (priority 5 < 10)
+    this->sendCmd_START_XMIT_CATALOG(0, 12, Fw::Wait::NO_WAIT, false);
+    this->component.doDispatch();
+    ASSERT_from_fileOut_SIZE(1);
+    ASSERT_EVENTS_SendingProduct_SIZE(1);
+    ASSERT_EVENTS_SendingProduct(0, dpFile2.toChar(), 200 + Fw::DpContainer::MIN_PACKET_SIZE, 5);
+
+    this->component.shutdown();
+}
+
 }  // namespace Svc

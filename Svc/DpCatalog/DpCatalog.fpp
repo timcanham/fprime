@@ -103,6 +103,15 @@ module Svc {
     ) \
       opcode 4
 
+    @ Reprioritize a data product
+    async command REPRIORITIZE_DP (
+      $id: FwDpIdType, @< data product ID
+      tSec: U32, @< time in seconds
+      tSub: U32, @< time in microseconds
+      $priority: U32 @< new priority
+    ) \
+      opcode 5
+
     # ----------------------------------------------------------------------
     # Events
     # ----------------------------------------------------------------------
@@ -467,6 +476,23 @@ module Svc {
       severity warning low \
       id 52 \
       format "Cannot retransmit DP file {} while it is currently being transmitted"
+
+    @ Data product priority updated
+    event DpReprioritized(
+                            file: string size FileNameStringSize @< The file
+                            $priority: U32 @< new priority
+                          ) \
+      severity activity high \
+      id 53 \
+      format "DP file {} reprioritized to priority {}"
+
+    @ Cannot reprioritize already transmitted DP
+    event DpAlreadyTransmitted(
+                            file: string size FileNameStringSize @< The file
+                          ) \
+      severity warning low \
+      id 54 \
+      format "DP file {} has already been transmitted"
 
 
     # ----------------------------------------------------------------------

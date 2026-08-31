@@ -116,6 +116,8 @@ During initialization, the configuration function takes a set of parameters:
 |`STOP_XMIT_CATALOG`|none|Stop existing catalog transmission. Will be completed when the current file is done transmitting.
 |`CLEAR_CATALOG`|none|Clears existing RAM catalog and resets downlink state. Should be followed by `BUILD_CATALOG`. Used for recovery if state file gets corrupted or out of sync with file system contents. |
 |`RETRANSMIT_DP`|U32 data product ID, U32 time in seconds, U32 time in microseconds, U32 priority|This will mark the specified data product for retransmission. If the file does not exist, it will have no effect. If the file exists, it will be marked for retransmit based on the priority argument.
+|`REPRIORITIZE_DP`|U32 data product ID, U32 time in seconds, U32 time in microseconds, U32 priority|This will update the priority for the specified data product. If the file does not exist, it will have no effect. If the file exists, the priority will be updated based on the priority argument.
+
 
 #### Sequence of Commands
 
@@ -155,7 +157,18 @@ The `RETRANSMIT_DP` command does the following:
 2. If the file exists, see if the state file has been loaded into memory. If so, look for the entry for the data product.
 3. If the entry exists, update the transmitted status to `UNTRANSMITTED` and set the priority to the priority argument.
 4. If the entry doesn't exist, add a new entry and set the status to `UNTRANSMITTED` and set the priority to the priority argument.
-5. If the state file hasn't been loaded into memory (i.e., `BUILD_CATALOG` has not been executed), modify the file in storage according to steps 3 & 4. This allows the command to be issued at any time without requiring `BUILD_CATALOG` to have been run first.
+5. If the state file hasn't been loaded into memory (i.e., `BUILD_CATALOG` has not been executed), modify the state file in storage according to steps 3 & 4. This allows the command to be issued at any time without requiring `BUILD_CATALOG` to have been run first.
+
+#### 3.7.5 Reprioritize
+
+The `REPRIORITIZE_DP` command does the following:
+
+1. Check for the existence of the data product file. If it doesn't exist, emit a WARNING_LO event.
+2. If the file exists, see if the state file has been loaded into memory. If so, look for the entry for the data product.
+3. If the entry exists, update the priority to the priority argument.
+4. If the entry doesn't exist, add a new entry and set the priority to the priority argument.
+5. If the state file hasn't been loaded into memory (i.e., `BUILD_CATALOG` has not been executed), modify the state file in storage according to steps 3 & 4. This allows the command to be issued at any time without requiring `BUILD_CATALOG` to have been run first.
+
 
 ## 6 Unit Testing
 

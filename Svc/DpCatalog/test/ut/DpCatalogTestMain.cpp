@@ -360,6 +360,36 @@ TEST(NominalManual, RetransmitDp_PriorityHandling) {
     tester.test_RetransmitDp_PriorityHandling();
 }
 
+TEST(NominalManual, ReprioritizeDp_FileNotFound) {
+    Svc::DpCatalogTester tester;
+    tester.test_ReprioritizeDp_FileNotFound();
+}
+
+TEST(NominalManual, ReprioritizeDp_BeforeCatalogBuilt) {
+    Svc::DpCatalogTester tester;
+    tester.test_ReprioritizeDp_BeforeCatalogBuilt();
+}
+
+TEST(NominalManual, ReprioritizeDp_ExistingEntry) {
+    Svc::DpCatalogTester tester;
+    tester.test_ReprioritizeDp_ExistingEntry();
+}
+
+TEST(NominalManual, ReprioritizeDp_AlreadyTransmitted) {
+    Svc::DpCatalogTester tester;
+    tester.test_ReprioritizeDp_AlreadyTransmitted();
+}
+
+TEST(NominalManual, ReprioritizeDp_CurrentlyTransmitting) {
+    Svc::DpCatalogTester tester;
+    tester.test_ReprioritizeDp_CurrentlyTransmitting();
+}
+
+TEST(NominalManual, ReprioritizeDp_NewEntry) {
+    Svc::DpCatalogTester tester;
+    tester.test_ReprioritizeDp_NewEntry();
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     STest::Random::seed();

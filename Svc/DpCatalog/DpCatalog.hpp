@@ -142,6 +142,17 @@ class DpCatalog final : public DpCatalogComponentBase {
                                   U32 priority           //!< priority for retransmission
                                   ) override;
 
+    //! Handler implementation for command REPRIORITIZE_DP
+    //!
+    //! Reprioritize a data product
+    void REPRIORITIZE_DP_cmdHandler(FwOpcodeType opCode,  //!< The opcode
+                                    U32 cmdSeq,            //!< The command sequence number
+                                    FwDpIdType id,         //!< data product ID
+                                    U32 tSec,              //!< time in seconds
+                                    U32 tSub,              //!< time in microseconds
+                                    U32 priority           //!< new priority
+                                    ) override;
+
     // ----------------------------------
     // Private data structures
     // ----------------------------------
