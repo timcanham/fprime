@@ -126,3 +126,5 @@ temp_dir/
 *.out
 *.app
 .claude
+.auth_key
+.mylocalauthcache

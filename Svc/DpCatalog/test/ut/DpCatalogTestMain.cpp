@@ -390,6 +390,26 @@ TEST(NominalManual, ReprioritizeDp_NewEntry) {
     tester.test_ReprioritizeDp_NewEntry();
 }
 
+TEST(NominalManual, DeleteDp_FileNotFound) {
+    Svc::DpCatalogTester tester;
+    tester.test_DeleteDp_FileNotFound();
+}
+
+TEST(NominalManual, DeleteDp_ExistingEntry) {
+    Svc::DpCatalogTester tester;
+    tester.test_DeleteDp_ExistingEntry();
+}
+
+TEST(NominalManual, DeleteDp_CurrentlyTransmitting) {
+    Svc::DpCatalogTester tester;
+    tester.test_DeleteDp_CurrentlyTransmitting();
+}
+
+TEST(NominalManual, DeleteDp_NotInCatalog) {
+    Svc::DpCatalogTester tester;
+    tester.test_DeleteDp_NotInCatalog();
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     STest::Random::seed();

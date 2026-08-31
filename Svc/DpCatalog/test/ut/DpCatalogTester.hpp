@@ -164,6 +164,11 @@ class DpCatalogTester : public DpCatalogGTestBase {
     void test_RetransmitDp_CurrentlyTransmitting();
     void test_RetransmitDp_PriorityHandling();
 
+    void test_DeleteDp_FileNotFound();
+    void test_DeleteDp_ExistingEntry();
+    void test_DeleteDp_CurrentlyTransmitting();
+    void test_DeleteDp_NotInCatalog();
+
     void test_ReprioritizeDp_FileNotFound();
     void test_ReprioritizeDp_BeforeCatalogBuilt();
     void test_ReprioritizeDp_ExistingEntry();

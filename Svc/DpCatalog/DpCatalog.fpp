@@ -112,6 +112,14 @@ module Svc {
     ) \
       opcode 5
 
+    @ Delete a data product
+    async command DELETE_DP (
+      $id: FwDpIdType, @< data product ID
+      tSec: U32, @< time in seconds
+      tSub: U32 @< time in microseconds
+    ) \
+      opcode 6
+
     # ----------------------------------------------------------------------
     # Events
     # ----------------------------------------------------------------------
@@ -493,6 +501,31 @@ module Svc {
       severity warning low \
       id 54 \
       format "DP file {} has already been transmitted"
+
+    @ Data product deleted
+    event DpDeleted(
+                            file: string size FileNameStringSize @< The file
+                          ) \
+      severity activity high \
+      id 55 \
+      format "DP file {} deleted"
+
+    @ Cannot delete DP while transmitting
+    event DpCannotDeleteWhileTransmitting(
+                            file: string size FileNameStringSize @< The file
+                          ) \
+      severity warning low \
+      id 56 \
+      format "Cannot delete DP file {} while it is currently being transmitted"
+
+    @ Error deleting DP file
+    event DpDeleteFileError(
+                            file: string size FileNameStringSize @< The file
+                            stat: I32 @< status
+                          ) \
+      severity warning high \
+      id 57 \
+      format "Error deleting DP file {}, stat {}"
 
 
     # ----------------------------------------------------------------------

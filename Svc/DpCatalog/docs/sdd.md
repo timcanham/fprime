@@ -118,6 +118,8 @@ During initialization, the configuration function takes a set of parameters:
 |`RETRANSMIT_DP`|U32 data product ID, U32 time in seconds, U32 time in microseconds, U32 priority|This will mark the specified data product for retransmission. If the file does not exist, it will have no effect. If the file exists, it will be marked for retransmit based on the priority argument.
 |`REPRIORITIZE_DP`|U32 data product ID, U32 time in seconds, U32 time in microseconds, U32 priority|This will update the priority for the specified data product. If the file does not exist, it will have no effect. If the file exists, the priority will be updated based on the priority argument.
 
+|`DELETE_DP`|U32 data product ID, U32 time in seconds, U32 time in microseconds|This will delete the data product from the system.
+
 
 #### Sequence of Commands
 
@@ -169,6 +171,14 @@ The `REPRIORITIZE_DP` command does the following:
 4. If the entry doesn't exist, add a new entry and set the priority to the priority argument.
 5. If the state file hasn't been loaded into memory (i.e., `BUILD_CATALOG` has not been executed), modify the state file in storage according to steps 3 & 4. This allows the command to be issued at any time without requiring `BUILD_CATALOG` to have been run first.
 
+#### 3.7.6 Delete
+
+The `DELETE_DP` command does the following:
+
+1. Check to see if the file is being transmitted. If it is, emit a WARNING_LO and return the command as passed, but do nothing else.
+2. Check for the existence of the data product file. If it doesn't exist, emit a WARNING_LO event.
+3. Look in the catalog tree and the state file. If the product exists in ether one, remove it where it is found.
+4. If the file exists, delete it.
 
 ## 6 Unit Testing
 
@@ -219,4 +229,13 @@ The following unit tests verify DpCatalog component functionality:
 | `RetransmitDp_NewEntry` | RETRANSMIT_DP to add DP created after BUILD_CATALOG | Verifies a new entry is created in the catalog with the specified priority |
 | `RetransmitDp_CurrentlyTransmitting` | RETRANSMIT_DP while DP is actively transmitting | Verifies WARNING_LO event is emitted and DP is not modified during active transmission |
 | `RetransmitDp_PriorityHandling` | RETRANSMIT_DP priority change during active transmission | Verifies that when a DP priority is changed while another file transmits, the updated entry is transmitted in correct priority order after current transmission completes |
+
+### 6.4 DELETE_DP Command Tests
+
+| Test Name | Description | Verification |
+|-----------|-------------|--------------|
+| `DeleteDp_FileNotFound` | DELETE_DP for non-existent file | Verifies WARNING_LO event is emitted and command returns OK without modifying catalog or filesystem |
+| `DeleteDp_ExistingEntry` | DELETE_DP of existing catalog entry | Verifies the file is deleted from filesystem, removed from catalog tree and state file, and subsequent transmission skips the deleted file |
+| `DeleteDp_CurrentlyTransmitting` | DELETE_DP while DP is actively transmitting | Verifies WARNING_LO event is emitted, file is NOT deleted, and command returns OK |
+| `DeleteDp_NotInCatalog` | DELETE_DP of file that exists on filesystem but not in catalog | Verifies file is deleted from filesystem even when not present in catalog structures |
 

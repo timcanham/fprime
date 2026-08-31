@@ -1412,6 +1412,96 @@ void DpCatalog::REPRIORITIZE_DP_cmdHandler(FwOpcodeType opCode,
     this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 
+void DpCatalog::DELETE_DP_cmdHandler(FwOpcodeType opCode, U32 cmdSeq, FwDpIdType id, U32 tSec, U32 tSub) {
+    // Step 1: Check if this DP is currently being transmitted
+    if (this->m_hasCurrentXmit && this->m_currentXmitEntry.record.get_id() == id &&
+        this->m_currentXmitEntry.record.get_tSec() == tSec && this->m_currentXmitEntry.record.get_tSub() == tSub) {
+        // Build filename for event
+        Fw::FileNameString fullFilePath;
+        Fw::FormatStatus formatStat = fullFilePath.format(
+            DP_FILENAME_FORMAT, this->m_directories[this->m_currentXmitEntry.dir].toChar(), id, tSec, tSub);
+
+        if (formatStat == Fw::FormatStatus::SUCCESS) {
+            this->log_WARNING_LO_DpCannotDeleteWhileTransmitting(fullFilePath);
+        }
+        this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+        return;
+    }
+
+    // Step 2: Build the filename and check if file exists
+    bool fileFound = false;
+    FwSizeType foundDir = DP_MAX_DIRECTORIES;
+    Fw::FileNameString fullFilePath;
+
+    // Search all configured directories for the file
+    for (FwSizeType dir = 0; dir < this->m_numDirectories; dir++) {
+        Fw::FormatStatus formatStat =
+            fullFilePath.format(DP_FILENAME_FORMAT, this->m_directories[dir].toChar(), id, tSec, tSub);
+
+        if (formatStat != Fw::FormatStatus::SUCCESS) {
+            continue;
+        }
+
+        // Check if file exists
+        FwSizeType fileSize = 0;
+        Os::FileSystem::Status sizeStat = Os::FileSystem::getFileSize(fullFilePath.toChar(), fileSize);
+
+        if (sizeStat == Os::FileSystem::OP_OK) {
+            fileFound = true;
+            foundDir = dir;
+            break;
+        }
+    }
+
+    // If file doesn't exist, emit warning and return early
+    if (!fileFound) {
+        this->log_WARNING_LO_DpFileNotFound(id, tSec, tSub);
+        this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+        return;
+    }
+
+    // Step 3: Remove from catalog tree and state file (if loaded into memory)
+    if (this->m_catalogBuilt && this->m_stateFileData != nullptr) {
+        // Catalog is loaded in memory - work with in-memory structures
+
+        // Search for and remove entry from catalog tree
+        for (typename Fw::RedBlackTreeSet<DpStateEntry, DP_MAX_FILES>::ConstIterator iter = this->m_dpCatalog.begin();
+             iter != this->m_dpCatalog.end();
+             ++iter) {
+            if ((*iter).dir == static_cast<FwIndexType>(foundDir) && (*iter).record.get_id() == id &&
+                (*iter).record.get_tSec() == tSec && (*iter).record.get_tSub() == tSub) {
+                DpStateEntry foundEntry = *iter;
+                this->m_dpCatalog.remove(foundEntry);
+                break;
+            }
+        }
+
+        // Search for and remove entry from state file data
+        for (FwSizeType line = 0; line < this->m_stateFileEntries; line++) {
+            if (this->m_stateFileData[line].used && this->m_stateFileData[line].entry.dir == static_cast<FwIndexType>(foundDir) &&
+                this->m_stateFileData[line].entry.record.get_id() == id &&
+                this->m_stateFileData[line].entry.record.get_tSec() == tSec &&
+                this->m_stateFileData[line].entry.record.get_tSub() == tSub) {
+                this->m_stateFileData[line].used = false;
+                break;
+            }
+        }
+
+        // Write updated state file back to disk
+        this->pruneAndWriteStateFile();
+    }
+
+    // Step 4: Delete the file from filesystem
+    Os::FileSystem::Status removeStat = Os::FileSystem::removeFile(fullFilePath.toChar());
+    if (removeStat != Os::FileSystem::OP_OK) {
+        this->log_WARNING_HI_DpDeleteFileError(fullFilePath, static_cast<I32>(removeStat));
+    } else {
+        this->log_ACTIVITY_HI_DpDeleted(fullFilePath);
+    }
+
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+}
+
 void DpCatalog ::dispatchWaitedResponse(Fw::CmdResponse response) {
     if (this->m_xmitCmdWait) {
         this->cmdResponse_out(this->m_xmitOpCode, this->m_xmitCmdSeq, response);

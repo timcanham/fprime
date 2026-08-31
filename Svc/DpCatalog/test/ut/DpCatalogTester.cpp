@@ -1370,4 +1370,158 @@ void DpCatalogTester::test_ReprioritizeDp_NewEntry() {
     this->component.shutdown();
 }
 
+void DpCatalogTester::test_DeleteDp_FileNotFound() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Delete_FileNotFound");
+    Fw::FileNameString stateFile("./DpTest_Delete_FileNotFound/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Try to delete a DP that doesn't exist
+    this->sendCmd_DELETE_DP(0, 10, 0x999, 2000, 200);
+    this->component.doDispatch();
+
+    // Should get OK response and file not found event
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_CMD_RESPONSE(0, DpCatalog::OPCODE_DELETE_DP, 10, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpFileNotFound_SIZE(1);
+    ASSERT_EVENTS_DpFileNotFound(0, 0x999, 2000, 200);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_DeleteDp_ExistingEntry() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Delete_Existing");
+    Fw::FileNameString stateFile("./DpTest_Delete_Existing/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create two DP files
+    Fw::Time time1(1000, 100);
+    Fw::Time time2(2000, 200);
+    Fw::String dpFile1 = this->genDP(0x123, 10, time1, 100, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    Fw::String dpFile2 = this->genDP(0x456, 20, time2, 200, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile1.toChar(), "");
+    ASSERT_STRNE(dpFile2.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Build catalog
+    this->sendCmd_BUILD_CATALOG(0, 10);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_EVENTS_DpFileAdded_SIZE(2);
+
+    // Delete first file
+    this->sendCmd_DELETE_DP(0, 11, 0x123, 1000, 100);
+    this->component.doDispatch();
+
+    ASSERT_CMD_RESPONSE_SIZE(2);
+    ASSERT_CMD_RESPONSE(1, DpCatalog::OPCODE_DELETE_DP, 11, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpDeleted_SIZE(1);
+
+    // Verify file is actually deleted
+    FwSizeType fileSize = 0;
+    Os::FileSystem::Status sizeStat = Os::FileSystem::getFileSize(dpFile1.toChar(), fileSize);
+    ASSERT_NE(sizeStat, Os::FileSystem::OP_OK);
+
+    // Start transmission - should only transmit second file
+    this->sendCmd_START_XMIT_CATALOG(0, 12, Fw::Wait::NO_WAIT, false);
+    this->component.doDispatch();
+    ASSERT_from_fileOut_SIZE(1);
+    ASSERT_EVENTS_SendingProduct_SIZE(1);
+    ASSERT_EVENTS_SendingProduct(0, dpFile2.toChar(), 200 + Fw::DpContainer::MIN_PACKET_SIZE, 20);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_DeleteDp_CurrentlyTransmitting() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Delete_Transmitting");
+    Fw::FileNameString stateFile("./DpTest_Delete_Transmitting/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create two DP files
+    Fw::Time time1(1000, 100);
+    Fw::Time time2(2000, 200);
+    Fw::String dpFile1 = this->genDP(0x123, 10, time1, 100, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    Fw::String dpFile2 = this->genDP(0x456, 20, time2, 200, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile1.toChar(), "");
+    ASSERT_STRNE(dpFile2.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Build catalog
+    this->sendCmd_BUILD_CATALOG(0, 10);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_EVENTS_DpFileAdded_SIZE(2);
+
+    // Start transmission
+    this->m_autoFileDone = false;
+    this->sendCmd_START_XMIT_CATALOG(0, 11, Fw::Wait::NO_WAIT, false);
+    this->component.doDispatch();
+
+    // First file should start transmitting
+    ASSERT_from_fileOut_SIZE(1);
+    ASSERT_EVENTS_SendingProduct_SIZE(1);
+
+    // Try to delete the file that is currently transmitting
+    this->sendCmd_DELETE_DP(0, 12, 0x123, 1000, 100);
+    this->component.doDispatch();
+
+    // Should get OK response but warning event
+    ASSERT_CMD_RESPONSE_SIZE(3);
+    ASSERT_CMD_RESPONSE(2, DpCatalog::OPCODE_DELETE_DP, 12, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpCannotDeleteWhileTransmitting_SIZE(1);
+
+    // Verify file still exists
+    FwSizeType fileSize = 0;
+    Os::FileSystem::Status sizeStat = Os::FileSystem::getFileSize(dpFile1.toChar(), fileSize);
+    ASSERT_EQ(sizeStat, Os::FileSystem::OP_OK);
+
+    this->component.shutdown();
+}
+
+void DpCatalogTester::test_DeleteDp_NotInCatalog() {
+    Fw::MallocAllocator alloc;
+    Fw::FileNameString dir("./DpTest_Delete_NotInCatalog");
+    Fw::FileNameString stateFile("./DpTest_Delete_NotInCatalog/dpState.dat");
+    this->makeDpDir(dir.toChar());
+
+    // Create one DP file
+    Fw::Time time1(1000, 100);
+    Fw::String dpFile1 = this->genDP(0x123, 10, time1, 100, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile1.toChar(), "");
+
+    this->component.configure(Fw::ExternalArray<Fw::FileNameString>(&dir, 1), stateFile, 100, alloc);
+
+    // Build catalog
+    this->sendCmd_BUILD_CATALOG(0, 10);
+    this->component.doDispatch();
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_EVENTS_DpFileAdded_SIZE(1);
+
+    // Create a second DP after catalog is built (not in catalog yet)
+    Fw::Time time2(2000, 200);
+    Fw::String dpFile2 = this->genDP(0x456, 20, time2, 200, Fw::DpState::UNTRANSMITTED, false, dir.toChar());
+    ASSERT_STRNE(dpFile2.toChar(), "");
+
+    // Delete the second file (exists on filesystem but not in catalog)
+    this->sendCmd_DELETE_DP(0, 11, 0x456, 2000, 200);
+    this->component.doDispatch();
+
+    ASSERT_CMD_RESPONSE_SIZE(2);
+    ASSERT_CMD_RESPONSE(1, DpCatalog::OPCODE_DELETE_DP, 11, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpDeleted_SIZE(1);
+
+    // Verify file is deleted
+    FwSizeType fileSize = 0;
+    Os::FileSystem::Status sizeStat = Os::FileSystem::getFileSize(dpFile2.toChar(), fileSize);
+    ASSERT_NE(sizeStat, Os::FileSystem::OP_OK);
+
+    this->component.shutdown();
+}
+
 }  // namespace Svc

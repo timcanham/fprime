@@ -153,6 +153,16 @@ class DpCatalog final : public DpCatalogComponentBase {
                                     U32 priority           //!< new priority
                                     ) override;
 
+    //! Handler implementation for command DELETE_DP
+    //!
+    //! Delete a data product
+    void DELETE_DP_cmdHandler(FwOpcodeType opCode,  //!< The opcode
+                              U32 cmdSeq,            //!< The command sequence number
+                              FwDpIdType id,         //!< data product ID
+                              U32 tSec,              //!< time in seconds
+                              U32 tSub               //!< time in microseconds
+                              ) override;
+
     // ----------------------------------
     // Private data structures
     // ----------------------------------
