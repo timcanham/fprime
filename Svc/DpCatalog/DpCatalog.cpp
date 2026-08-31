@@ -1382,19 +1382,21 @@ void DpCatalog::REPRIORITIZE_DP_cmdHandler(FwOpcodeType opCode,
         if (!foundEntry && this->m_stateFileEntries < this->m_numDpSlots) {
             // Add new entry to state file data
             FwSizeType fileSize = 0;
-            Os::FileSystem::getFileSize(fullFilePath.toChar(), fileSize);
+            Os::FileSystem::Status sizeStat = Os::FileSystem::getFileSize(fullFilePath.toChar(), fileSize);
 
-            this->m_stateFileData[this->m_stateFileEntries].used = true;
-            this->m_stateFileData[this->m_stateFileEntries].visited = true;
-            this->m_stateFileData[this->m_stateFileEntries].entry.dir = static_cast<FwIndexType>(foundDir);
-            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_id(id);
-            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_tSec(tSec);
-            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_tSub(tSub);
-            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_priority(priority);
-            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_state(Fw::DpState::UNTRANSMITTED);
-            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_size(static_cast<U64>(fileSize));
-            this->m_stateFileData[this->m_stateFileEntries].entry.record.set_blocks(0);
-            this->m_stateFileEntries++;
+            if (sizeStat == Os::FileSystem::OP_OK) {
+                this->m_stateFileData[this->m_stateFileEntries].used = true;
+                this->m_stateFileData[this->m_stateFileEntries].visited = true;
+                this->m_stateFileData[this->m_stateFileEntries].entry.dir = static_cast<FwIndexType>(foundDir);
+                this->m_stateFileData[this->m_stateFileEntries].entry.record.set_id(id);
+                this->m_stateFileData[this->m_stateFileEntries].entry.record.set_tSec(tSec);
+                this->m_stateFileData[this->m_stateFileEntries].entry.record.set_tSub(tSub);
+                this->m_stateFileData[this->m_stateFileEntries].entry.record.set_priority(priority);
+                this->m_stateFileData[this->m_stateFileEntries].entry.record.set_state(Fw::DpState::UNTRANSMITTED);
+                this->m_stateFileData[this->m_stateFileEntries].entry.record.set_size(static_cast<U64>(fileSize));
+                this->m_stateFileData[this->m_stateFileEntries].entry.record.set_blocks(0);
+                this->m_stateFileEntries++;
+            }
         }
 
         // Emit warning if already transmitted
