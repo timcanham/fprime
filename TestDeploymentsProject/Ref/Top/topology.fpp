@@ -47,6 +47,9 @@ module Ref {
     instance comDriver
     instance cmdSeq
 
+    instance eventComDp Svc.ComLoggerDp
+    instance tlmComDp Svc.ComLoggerDp
+
     # ----------------------------------------------------------------------
     # Pattern graph specifiers
     # ----------------------------------------------------------------------

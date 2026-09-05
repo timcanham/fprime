@@ -51,6 +51,17 @@ module Ref {
     stack size Default.STACK_SIZE \
     priority 23
 
+  instance eventComDp Svc.ComLoggerDp base id 0x10004100 \
+    queue size Default.QUEUE_SIZE \
+    stack size Default.STACK_SIZE \
+    priority 23
+
+  instance tlmComDp Svc.ComLoggerDp base id 0x10004200 \
+    queue size Default.QUEUE_SIZE \
+    stack size Default.STACK_SIZE \
+    priority 23
+
+
   instance typeDemo: Ref.TypeDemo base id 0x10005000
 
   instance cmdSeq: Svc.CmdSequencer base id 0x10006000 \
