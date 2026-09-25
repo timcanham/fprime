@@ -187,10 +187,11 @@ class CmdSequencerComponentImpl final : public CmdSequencerComponentBase {
             };
 
             enum DirectiveId {
-                LABEL = 0,  //!< Label directive - marks a jump target
-                JCF = 1,    //!< Jump Command Failure - jump to label on command failure
-                EXIT = 2,   //!< Exit sequence with specified status
-                JCS = 3     //!< Jump Command Success - jump to label on command success
+                LABEL = 0,      //!< Label directive - marks a jump target
+                JCF = 1,        //!< Jump Command Failure - jump to label on command failure
+                EXIT = 2,       //!< Exit sequence with specified status
+                JCS = 3,        //!< Jump Command Success - jump to label on command success
+                ERROR_MODE = 4  //!< Error mode - control whether sequence aborts on command failure
             };
 
           public:
@@ -735,6 +736,9 @@ class CmdSequencerComponentImpl final : public CmdSequencerComponentBase {
     //! Jump Command Success (JCS) state
     bool m_jcsActive;                //!< Whether a JCS is currently set
     Fw::String m_jcsTarget;          //!< Target label for JCS
+
+    //! Error mode state
+    bool m_errorMode;                //!< Whether sequence aborts on command error (true = abort, false = continue)
 
     //! Telemetry to update sequence not running
     const Fw::String NO_SEQ{"<no seq>"};

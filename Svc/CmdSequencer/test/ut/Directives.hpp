@@ -82,6 +82,18 @@ class CmdSequencerTester : public ImmediateBase::CmdSequencerTester {
 
     //! Test both JCF and JCS active - command succeeds, should use JCS
     void JCFAndJCSSuccess();
+
+    //! Test ERROR_MODE OFF - sequence continues on error
+    void ErrorModeOff();
+
+    //! Test ERROR_MODE ON - sequence aborts on error
+    void ErrorModeOn();
+
+    //! Test ERROR_MODE toggle - changes behavior mid-sequence
+    void ErrorModeToggle();
+
+    //! Test ERROR_MODE OFF with JCF - JCF takes precedence
+    void ErrorModeOffWithJCF();
 };
 
 }  // namespace Directives

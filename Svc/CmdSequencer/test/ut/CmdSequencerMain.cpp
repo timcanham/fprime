@@ -113,6 +113,26 @@ TEST(Directives, JCFAndJCSSuccess) {
     tester.JCFAndJCSSuccess();
 }
 
+TEST(Directives, ErrorModeOff) {
+    Svc::Directives::CmdSequencerTester tester;
+    tester.ErrorModeOff();
+}
+
+TEST(Directives, ErrorModeOn) {
+    Svc::Directives::CmdSequencerTester tester;
+    tester.ErrorModeOn();
+}
+
+TEST(Directives, ErrorModeToggle) {
+    Svc::Directives::CmdSequencerTester tester;
+    tester.ErrorModeToggle();
+}
+
+TEST(Directives, ErrorModeOffWithJCF) {
+    Svc::Directives::CmdSequencerTester tester;
+    tester.ErrorModeOffWithJCF();
+}
+
 TEST(Health, Ping) {
     TEST_CASE(103.1.9, "Nominal ping test");
     Svc::Health::CmdSequencerTester tester;

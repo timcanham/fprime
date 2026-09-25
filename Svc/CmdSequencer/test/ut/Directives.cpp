@@ -65,6 +65,15 @@ static void serializeJCS(const char* targetLabel, Fw::ComBuffer& comBuffer) {
     comBuffer.serialize(reinterpret_cast<const U8*>(targetLabel), labelLen, Fw::Serialization::OMIT_LENGTH);
 }
 
+static void serializeErrorMode(U8 mode, Fw::ComBuffer& comBuffer) {
+    comBuffer.resetSer();
+    // Directive ID = ERROR_MODE (4)
+    U8 directiveId = CmdSequencerComponentImpl::Sequence::Record::ERROR_MODE;
+    comBuffer.serialize(directiveId);
+    // Mode (0 = OFF, 1 = ON)
+    comBuffer.serialize(mode);
+}
+
 static void serializeDirectiveRecord(const Fw::ComBuffer& directiveBuffer, Fw::LinearBufferBase& buffer) {
     // Descriptor = SEQUENCE_DIRECTIVE (3)
     U8 descriptor = CmdSequencerComponentImpl::Sequence::Record::SEQUENCE_DIRECTIVE;
@@ -1204,6 +1213,381 @@ void CmdSequencerTester ::JCFAndJCSSuccess() {
     // Should complete immediately (no commands after SUCCESS label in this test)
     this->clearAndDispatch();
     ASSERT_EVENTS_SIZE(1);
+    ASSERT_EVENTS_CS_SequenceComplete_SIZE(1);
+}
+
+void CmdSequencerTester ::ErrorModeOff() {
+    // Create sequence: ERROR_MODE(0), CMD0, CMD1 (will fail), CMD2, CMD3
+    // With error mode OFF, sequence continues even when CMD1 fails
+    SequenceFiles::Buffers buffers;
+    Fw::LinearBufferBase& buffer = buffers.get(this->format);
+
+    const U32 numCommands = 4;
+    const U32 numDirectives = 1;
+    const U32 numRecords = numCommands + numDirectives;
+
+    // Calculate data size
+    Fw::ComBuffer errorModeBuf;
+    serializeErrorMode(0, errorModeBuf);  // 0 = OFF
+    const U32 errorModeRecordSize = 1 + 8 + 4 + errorModeBuf.getBuffLength();
+    const U32 commandRecordSize = SequenceFiles::FPrime::Records::STANDARD_SIZE;
+    const U32 recordDataSize = (numCommands * commandRecordSize) + errorModeRecordSize;
+    const U32 dataSize = recordDataSize + SequenceFiles::FPrime::CRCs::SIZE;
+
+    // Header
+    const TimeBase timeBase = TimeBase::TB_WORKSTATION_TIME;
+    const U32 timeContext = 0;
+    SequenceFiles::FPrime::Headers::serialize(dataSize, numRecords, timeBase, timeContext, buffer);
+
+    // ERROR_MODE(0) - turn off error abort
+    serializeDirectiveRecord(errorModeBuf, buffer);
+
+    // CMD0
+    Fw::Time t(TimeBase::TB_WORKSTATION_TIME, 0, 0);
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 0, 1, buffer);
+
+    // CMD1 (will fail)
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 1, 2, buffer);
+
+    // CMD2 (should execute)
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 2, 3, buffer);
+
+    // CMD3 (should execute)
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 3, 4, buffer);
+
+    // CRC
+    SequenceFiles::FPrime::CRCs::serialize(buffer);
+
+    // Write file
+    const char* fileName = "error_mode_off_test.seq";
+    SequenceFiles::File::write(fileName, this->format, buffer);
+
+    // Run sequence
+    this->sendCmd_CS_RUN(0, 0, fileName, Svc::BlockState::NO_BLOCK);
+    this->clearAndDispatch();
+
+    ASSERT_EVENTS_SIZE(1);
+    ASSERT_EVENTS_CS_SequenceLoaded(0, fileName);
+    this->clearEvents();
+
+    // Execute CMD0
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(0, 1).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 0, Fw::CmdResponse::OK);
+    this->clearAndDispatch();
+    ASSERT_EVENTS_CS_CommandComplete_SIZE(1);
+    this->clearEvents();
+
+    // Execute CMD1 and make it fail - should NOT abort because error mode is OFF
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(1, 2).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 1, Fw::CmdResponse::EXECUTION_ERROR);
+    this->clearAndDispatch();
+
+    // Should log error but continue
+    ASSERT_EVENTS_SIZE(1);
+    ASSERT_EVENTS_CS_CommandError_SIZE(1);
+    this->clearEvents();
+
+    // Execute CMD2
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(2, 3).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 2, Fw::CmdResponse::OK);
+    this->clearAndDispatch();
+    ASSERT_EVENTS_CS_CommandComplete_SIZE(1);
+    this->clearEvents();
+
+    // Execute CMD3
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(3, 4).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 3, Fw::CmdResponse::OK);
+    this->clearAndDispatch();
+
+    // Sequence completes successfully
+    ASSERT_EVENTS_SIZE(2);
+    ASSERT_EVENTS_CS_CommandComplete_SIZE(1);
+    ASSERT_EVENTS_CS_SequenceComplete_SIZE(1);
+}
+
+void CmdSequencerTester ::ErrorModeOn() {
+    // Create sequence: ERROR_MODE(1), CMD0, CMD1 (will fail), CMD2
+    // With error mode ON (default), sequence aborts when CMD1 fails
+    SequenceFiles::Buffers buffers;
+    Fw::LinearBufferBase& buffer = buffers.get(this->format);
+
+    const U32 numCommands = 3;
+    const U32 numDirectives = 1;
+    const U32 numRecords = numCommands + numDirectives;
+
+    // Calculate data size
+    Fw::ComBuffer errorModeBuf;
+    serializeErrorMode(1, errorModeBuf);  // 1 = ON
+    const U32 errorModeRecordSize = 1 + 8 + 4 + errorModeBuf.getBuffLength();
+    const U32 commandRecordSize = SequenceFiles::FPrime::Records::STANDARD_SIZE;
+    const U32 recordDataSize = (numCommands * commandRecordSize) + errorModeRecordSize;
+    const U32 dataSize = recordDataSize + SequenceFiles::FPrime::CRCs::SIZE;
+
+    // Header
+    const TimeBase timeBase = TimeBase::TB_WORKSTATION_TIME;
+    const U32 timeContext = 0;
+    SequenceFiles::FPrime::Headers::serialize(dataSize, numRecords, timeBase, timeContext, buffer);
+
+    // ERROR_MODE(1) - ensure error abort is on (redundant but explicit)
+    serializeDirectiveRecord(errorModeBuf, buffer);
+
+    // CMD0
+    Fw::Time t(TimeBase::TB_WORKSTATION_TIME, 0, 0);
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 0, 1, buffer);
+
+    // CMD1 (will fail)
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 1, 2, buffer);
+
+    // CMD2 (should NOT execute)
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 2, 3, buffer);
+
+    // CRC
+    SequenceFiles::FPrime::CRCs::serialize(buffer);
+
+    // Write file
+    const char* fileName = "error_mode_on_test.seq";
+    SequenceFiles::File::write(fileName, this->format, buffer);
+
+    // Run sequence
+    this->sendCmd_CS_RUN(0, 0, fileName, Svc::BlockState::NO_BLOCK);
+    this->clearAndDispatch();
+
+    ASSERT_EVENTS_SIZE(1);
+    ASSERT_EVENTS_CS_SequenceLoaded(0, fileName);
+    this->clearEvents();
+
+    // Execute CMD0
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(0, 1).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 0, Fw::CmdResponse::OK);
+    this->clearAndDispatch();
+    ASSERT_EVENTS_CS_CommandComplete_SIZE(1);
+    this->clearEvents();
+
+    // Execute CMD1 and make it fail - should abort because error mode is ON
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(1, 2).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 1, Fw::CmdResponse::EXECUTION_ERROR);
+    this->clearAndDispatch();
+
+    // Should abort
+    ASSERT_EVENTS_SIZE(2);
+    ASSERT_EVENTS_CS_CommandError_SIZE(1);
+    ASSERT_EVENTS_CS_SequenceCanceled_SIZE(1);
+}
+
+void CmdSequencerTester ::ErrorModeToggle() {
+    // Create sequence: CMD0, ERROR_MODE(0), CMD1 (fail), CMD2, ERROR_MODE(1), CMD3 (fail), CMD4
+    // Should continue after CMD1 failure, but abort after CMD3 failure
+    SequenceFiles::Buffers buffers;
+    Fw::LinearBufferBase& buffer = buffers.get(this->format);
+
+    const U32 numCommands = 5;
+    const U32 numDirectives = 2;
+    const U32 numRecords = numCommands + numDirectives;
+
+    // Calculate data size
+    Fw::ComBuffer errorModeOffBuf, errorModeOnBuf;
+    serializeErrorMode(0, errorModeOffBuf);
+    serializeErrorMode(1, errorModeOnBuf);
+    const U32 errorModeOffRecordSize = 1 + 8 + 4 + errorModeOffBuf.getBuffLength();
+    const U32 errorModeOnRecordSize = 1 + 8 + 4 + errorModeOnBuf.getBuffLength();
+    const U32 commandRecordSize = SequenceFiles::FPrime::Records::STANDARD_SIZE;
+    const U32 recordDataSize =
+        (numCommands * commandRecordSize) + errorModeOffRecordSize + errorModeOnRecordSize;
+    const U32 dataSize = recordDataSize + SequenceFiles::FPrime::CRCs::SIZE;
+
+    // Header
+    const TimeBase timeBase = TimeBase::TB_WORKSTATION_TIME;
+    const U32 timeContext = 0;
+    SequenceFiles::FPrime::Headers::serialize(dataSize, numRecords, timeBase, timeContext, buffer);
+
+    // CMD0
+    Fw::Time t(TimeBase::TB_WORKSTATION_TIME, 0, 0);
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 0, 1, buffer);
+
+    // ERROR_MODE(0) - turn OFF
+    serializeDirectiveRecord(errorModeOffBuf, buffer);
+
+    // CMD1 (will fail)
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 1, 2, buffer);
+
+    // CMD2
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 2, 3, buffer);
+
+    // ERROR_MODE(1) - turn back ON
+    serializeDirectiveRecord(errorModeOnBuf, buffer);
+
+    // CMD3 (will fail)
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 3, 4, buffer);
+
+    // CMD4 (should NOT execute)
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 4, 5, buffer);
+
+    // CRC
+    SequenceFiles::FPrime::CRCs::serialize(buffer);
+
+    // Write file
+    const char* fileName = "error_mode_toggle_test.seq";
+    SequenceFiles::File::write(fileName, this->format, buffer);
+
+    // Run sequence
+    this->sendCmd_CS_RUN(0, 0, fileName, Svc::BlockState::NO_BLOCK);
+    this->clearAndDispatch();
+
+    ASSERT_EVENTS_SIZE(1);
+    ASSERT_EVENTS_CS_SequenceLoaded(0, fileName);
+    this->clearEvents();
+
+    // Execute CMD0
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(0, 1).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 0, Fw::CmdResponse::OK);
+    this->clearAndDispatch();
+    ASSERT_EVENTS_CS_CommandComplete_SIZE(1);
+    this->clearEvents();
+
+    // Execute CMD1 and fail - should continue (error mode OFF)
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(1, 2).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 1, Fw::CmdResponse::EXECUTION_ERROR);
+    this->clearAndDispatch();
+    ASSERT_EVENTS_CS_CommandError_SIZE(1);
+    this->clearEvents();
+
+    // Execute CMD2
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(2, 3).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 2, Fw::CmdResponse::OK);
+    this->clearAndDispatch();
+    ASSERT_EVENTS_CS_CommandComplete_SIZE(1);
+    this->clearEvents();
+
+    // Execute CMD3 and fail - should abort (error mode ON)
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(3, 4).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 3, Fw::CmdResponse::EXECUTION_ERROR);
+    this->clearAndDispatch();
+
+    // Should abort
+    ASSERT_EVENTS_SIZE(2);
+    ASSERT_EVENTS_CS_CommandError_SIZE(1);
+    ASSERT_EVENTS_CS_SequenceCanceled_SIZE(1);
+}
+
+void CmdSequencerTester ::ErrorModeOffWithJCF() {
+    // Create sequence: ERROR_MODE(0), CMD0, JCF "ERROR", CMD1 (fail), CMD2, LABEL "ERROR", CMD3
+    // Even with error mode OFF, JCF should take precedence and jump
+    SequenceFiles::Buffers buffers;
+    Fw::LinearBufferBase& buffer = buffers.get(this->format);
+
+    const U32 numCommands = 4;
+    const U32 numDirectives = 3;  // ERROR_MODE, JCF, LABEL
+    const U32 numRecords = numCommands + numDirectives;
+
+    // Calculate data size
+    Fw::ComBuffer errorModeBuf, jcfBuf, labelBuf;
+    serializeErrorMode(0, errorModeBuf);
+    serializeJCF("ERROR", jcfBuf);
+    serializeLabel("ERROR", labelBuf);
+    const U32 errorModeRecordSize = 1 + 8 + 4 + errorModeBuf.getBuffLength();
+    const U32 jcfRecordSize = 1 + 8 + 4 + jcfBuf.getBuffLength();
+    const U32 labelRecordSize = 1 + 8 + 4 + labelBuf.getBuffLength();
+    const U32 commandRecordSize = SequenceFiles::FPrime::Records::STANDARD_SIZE;
+    const U32 recordDataSize = (numCommands * commandRecordSize) + errorModeRecordSize +
+                                jcfRecordSize + labelRecordSize;
+    const U32 dataSize = recordDataSize + SequenceFiles::FPrime::CRCs::SIZE;
+
+    // Header
+    const TimeBase timeBase = TimeBase::TB_WORKSTATION_TIME;
+    const U32 timeContext = 0;
+    SequenceFiles::FPrime::Headers::serialize(dataSize, numRecords, timeBase, timeContext, buffer);
+
+    // ERROR_MODE(0)
+    serializeDirectiveRecord(errorModeBuf, buffer);
+
+    // CMD0
+    Fw::Time t(TimeBase::TB_WORKSTATION_TIME, 0, 0);
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 0, 1, buffer);
+
+    // JCF "ERROR"
+    serializeDirectiveRecord(jcfBuf, buffer);
+
+    // CMD1 (will fail)
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 1, 2, buffer);
+
+    // CMD2 (should be skipped)
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 2, 3, buffer);
+
+    // LABEL "ERROR"
+    serializeDirectiveRecord(labelBuf, buffer);
+
+    // CMD3 (error handler)
+    SequenceFiles::FPrime::Records::serialize(
+        CmdSequencerComponentImpl::Sequence::Record::RELATIVE, t, 3, 4, buffer);
+
+    // CRC
+    SequenceFiles::FPrime::CRCs::serialize(buffer);
+
+    // Write file
+    const char* fileName = "error_mode_jcf_test.seq";
+    SequenceFiles::File::write(fileName, this->format, buffer);
+
+    // Run sequence
+    this->sendCmd_CS_RUN(0, 0, fileName, Svc::BlockState::NO_BLOCK);
+    this->clearAndDispatch();
+
+    ASSERT_EVENTS_SIZE(1);
+    ASSERT_EVENTS_CS_SequenceLoaded(0, fileName);
+    this->clearEvents();
+
+    // Execute CMD0
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(0, 1).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 0, Fw::CmdResponse::OK);
+    this->clearAndDispatch();
+    ASSERT_EVENTS_CS_CommandComplete_SIZE(1);
+    this->clearEvents();
+
+    // Execute CMD1 and fail - JCF should jump even with error mode OFF
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(1, 2).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 1, Fw::CmdResponse::EXECUTION_ERROR);
+    this->clearAndDispatch();
+
+    // Should jump to ERROR
+    ASSERT_EVENTS_SIZE(2);
+    ASSERT_EVENTS_CS_CommandError_SIZE(1);
+    ASSERT_EVENTS_CS_SequenceCanceled_SIZE(1);
+    this->clearEvents();
+
+    // Execute CMD3 (error handler)
+    this->invoke_to_comCmdOut(0, CommandBuffers::create(3, 4).getComBuffer(), 0);
+    this->clearAndDispatch();
+    this->sendCmd_Response(0, 3, Fw::CmdResponse::OK);
+    this->clearAndDispatch();
+
+    ASSERT_EVENTS_SIZE(2);
+    ASSERT_EVENTS_CS_CommandComplete_SIZE(1);
     ASSERT_EVENTS_CS_SequenceComplete_SIZE(1);
 }
 

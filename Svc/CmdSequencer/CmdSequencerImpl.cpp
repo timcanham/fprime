@@ -41,7 +41,8 @@ CmdSequencerComponentImpl::CmdSequencerComponentImpl(const char* name)
       m_jcfActive(false),
       m_jcfTarget(""),
       m_jcsActive(false),
-      m_jcsTarget("") {}
+      m_jcsTarget(""),
+      m_errorMode(true) {}  // Default: error mode ON (abort on error)
 
 void CmdSequencerComponentImpl::setTimeout(const U32 timeout) {
     this->m_timeout = timeout;
@@ -299,6 +300,9 @@ void CmdSequencerComponentImpl::performCmd_Cancel() {
     this->m_jcsActive = false;
     this->m_jcsTarget = "";
 
+    // Reset error mode to default (ON)
+    this->m_errorMode = true;
+
     // write sequence done port with error, if connected
     if (this->isConnected_seqDone_OutputPort(0)) {
         this->seqDone_out(0, 0, 0, Fw::CmdResponse::EXECUTION_ERROR);
@@ -356,10 +360,30 @@ void CmdSequencerComponentImpl ::cmdResponseIn_handler(FwIndexType portNum,
                     this->m_jcfTarget = "";
                     this->performCmd_Cancel();
                 }
-            } else {
-                // No JCF active, abort sequence as normal
+            } else if (this->m_errorMode) {
+                // Error mode is ON (abort on error) and no JCF active, abort sequence
                 this->commandError(this->m_executedCount, opcode, response.e);
                 this->performCmd_Cancel();
+            } else {
+                // Error mode is OFF (continue on error), log error but continue
+                this->commandError(this->m_executedCount, opcode, response.e);
+
+                if (this->m_runMode == RUNNING && this->m_stepMode == AUTO) {
+                    // Auto mode - continue to next command
+                    if (not this->m_sequence->hasMoreRecords()) {
+                        // No data left
+                        this->m_runMode = STOPPED;
+                        this->sequenceComplete();
+                    } else {
+                        this->performCmd_Step();
+                    }
+                } else {
+                    // Manual step mode - wait for next step command
+                    if (not this->m_sequence->hasMoreRecords()) {
+                        this->m_runMode = STOPPED;
+                        this->sequenceComplete();
+                    }
+                }
             }
         } else {
             // Command succeeded
@@ -581,6 +605,10 @@ void CmdSequencerComponentImpl::sequenceComplete(const Fw::CmdResponse& status) 
     this->log_ACTIVITY_HI_CS_SequenceComplete(this->m_sequence->getLogFileName());
     this->tlmWrite_CS_SequencesCompleted(this->m_sequencesCompletedCount);
     this->m_executedCount = 0;
+
+    // Reset error mode to default (ON)
+    this->m_errorMode = true;
+
     // write sequence done port, if connected
     if (this->isConnected_seqDone_OutputPort(0)) {
         this->seqDone_out(0, 0, 0, status);
@@ -648,7 +676,7 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
     }
 
     // Validate directive ID
-    if (directiveId > Sequence::Record::JCS) {
+    if (directiveId > Sequence::Record::ERROR_MODE) {
         this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, directiveId);
         this->error();
         return false;
@@ -764,6 +792,28 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
             // Store the JCS target
             this->m_jcsTarget = labelBuf;
             this->m_jcsActive = true;
+            break;
+        }
+        case Sequence::Record::ERROR_MODE: {
+            // ERROR_MODE: Control whether sequence aborts on command failure
+            // Extract the mode (0 = off/continue, 1 = on/abort)
+            U8 mode;
+            status = dirBuf.deserializeTo(mode);
+            if (status != Fw::FW_SERIALIZE_OK) {
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+                this->error();
+                return false;
+            }
+
+            // Validate mode
+            if (mode > 1) {
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, mode);
+                this->error();
+                return false;
+            }
+
+            // Set error mode: 1 = ON (abort on error), 0 = OFF (continue on error)
+            this->m_errorMode = (mode == 1);
             break;
         }
         default:

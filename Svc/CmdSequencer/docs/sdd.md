@@ -240,7 +240,7 @@ When the descriptor field is 3 (sequence directive), the command buffer contains
 
 Directive Field | Size (bytes) | Description
 --------------- | ------------ | -----------
-Directive ID | 1 | Identifies the directive type. 0 = LABEL, 1 = JCF (Jump Command Failure), 2 = EXIT, 3 = JCS (Jump Command Success)
+Directive ID | 1 | Identifies the directive type. 0 = LABEL, 1 = JCF (Jump Command Failure), 2 = EXIT, 3 = JCS (Jump Command Success), 4 = ERROR_MODE
 Arguments | Variable | Directive-specific arguments
 
 **Directive Types:**
@@ -280,6 +280,23 @@ Arguments | Variable | Directive-specific arguments
      - If the target LABEL is not found at runtime, the sequence aborts with an error event
      - The sequence file generator tool should validate that all referenced labels exist in the sequence
    - Note: JCS and JCF can both be active for the same command. If both are present, only one will execute depending on the command result (JCF on failure, JCS on success)
+
+5. **ERROR_MODE** (Directive ID = 4): Controls whether the sequence aborts on command failure.
+   - Arguments: U8 mode (0 = OFF/continue on error, 1 = ON/abort on error)
+   - Behavior: Sets the error handling mode for all subsequent commands. When ERROR_MODE is ON (1), command failures cause the sequence to abort (unless a JCF directive is active for that command). When ERROR_MODE is OFF (0), command failures are logged but the sequence continues to the next command (JCF directives are still honored if present).
+   - Scope: Persistent - affects all subsequent commands until the next ERROR_MODE directive
+   - Default: ERROR_MODE is ON (abort on error) at the start of each sequence
+   - Use Cases:
+     - Executing best-effort command sequences where failures should be logged but not halt execution
+     - Implementing graceful degradation patterns
+     - Running diagnostic or telemetry collection sequences that should complete even if individual commands fail
+   - Interaction with JCF/JCS:
+     - JCF directives take precedence: if ERROR_MODE is OFF and a JCF is active, the JCF will still jump on failure
+     - JCS directives are unaffected by ERROR_MODE setting
+   - State Reset: ERROR_MODE is reset to ON (default) when:
+     - A sequence completes (successfully or with error)
+     - A sequence is canceled
+     - A new sequence is loaded
 
 **Directive State Management:**
 - When a JCF directive is executed, the target label is stored in component state
