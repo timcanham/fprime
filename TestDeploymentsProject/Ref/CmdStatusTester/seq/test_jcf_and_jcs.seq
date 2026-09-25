@@ -1,0 +1,40 @@
+; Test combined JCF and JCS directives
+; This sequence demonstrates using both jump on failure and jump on success
+; Only one will execute based on the command result
+
+; Test case 1: Command fails, so JCF executes (not JCS)
+JCF "FAIL_HANDLER_1"
+JCS "SUCCESS_PATH_1"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_FAIL 100 -10 "will_fail"
+
+; Should not reach here
+R00:00:05 Ref.cmdStatusTester.TEST_CMD_SUCCESS 999 99.9 false
+EXIT 1
+
+; Failure handler for test case 1
+LABEL "FAIL_HANDLER_1"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 200 2.0 true
+
+; Test case 2: Command succeeds, so JCS executes (not JCF)
+JCF "FAIL_HANDLER_2"
+JCS "SUCCESS_PATH_2"
+R00:00:05 Ref.cmdStatusTester.TEST_CMD_SUCCESS 300 3.0 false
+
+; Should not reach here
+R00:00:10 Ref.cmdStatusTester.TEST_CMD_SUCCESS 888 88.8 true
+EXIT 1
+
+; Should not reach here either
+LABEL "FAIL_HANDLER_2"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 777 77.7 false
+EXIT 1
+
+; Success path for test case 2
+LABEL "SUCCESS_PATH_2"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 400 4.0 true
+EXIT 0
+
+; Should not reach here
+LABEL "SUCCESS_PATH_1"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 666 66.6 false
+EXIT 1

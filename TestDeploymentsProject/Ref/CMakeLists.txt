@@ -14,6 +14,7 @@ add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SignalGen/")
 add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/TypeDemo/")
 add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/DpDemo/")
 add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/BlockDriver/")
+add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/CmdStatusTester/")
 add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/Top/")
 
 register_fprime_deployment(

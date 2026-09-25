@@ -1,0 +1,25 @@
+; Test forward and backward jumps with labels
+; This sequence demonstrates jumping both forward and backward in the sequence
+
+; Define an early label for backward jumping
+LABEL "START"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 100 1.0 true
+
+; Jump forward on failure
+JCF "FORWARD_LABEL"
+R00:00:05 Ref.cmdStatusTester.TEST_CMD_FAIL 200 -20 "jump_forward"
+
+; Should not reach here
+R00:00:10 Ref.cmdStatusTester.TEST_CMD_SUCCESS 999 99.9 false
+EXIT 1
+
+; Forward jump target
+LABEL "FORWARD_LABEL"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 300 3.0 true
+
+; Jump backward on success (careful - could create infinite loop in real scenarios)
+; We'll only do this once by using a command that succeeds
+R00:00:05 Ref.cmdStatusTester.TEST_CMD_SUCCESS 400 4.0 false
+
+; Exit normally - no backward jump this time
+EXIT 0

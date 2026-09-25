@@ -47,6 +47,7 @@ module Ref {
     instance comDriver
     instance cmdSeq
     instance wasmSeq
+    instance cmdStatusTester
 
     # ----------------------------------------------------------------------
     # Pattern graph specifiers

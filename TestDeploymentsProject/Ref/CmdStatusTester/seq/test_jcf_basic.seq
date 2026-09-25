@@ -1,0 +1,18 @@
+; Test basic JCF (Jump on Command Failure) directive
+; This sequence demonstrates jumping to an error handler when a command fails
+
+; Execute a successful command first
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 100 1.5 true
+
+; Set up error handler and execute a failing command
+JCF "ERROR_HANDLER"
+R00:00:05 Ref.cmdStatusTester.TEST_CMD_FAIL 200 -10 "fail_test"
+
+; This should NOT execute because the previous command fails and jumps
+R00:00:10 Ref.cmdStatusTester.TEST_CMD_SUCCESS 999 99.9 false
+EXIT 0
+
+; Error handler - execution jumps here when Ref.cmdStatusTester.TEST_CMD_FAIL fails
+LABEL "ERROR_HANDLER"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 300 3.0 true
+EXIT 1

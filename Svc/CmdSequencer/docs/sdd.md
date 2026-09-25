@@ -386,6 +386,130 @@ where:
 
 Note that the time is encoded in UTC with an epoch of 1/1/1970.
 
+__Sequence Directives:__
+
+Directives do not use time tags and are executed immediately when encountered.
+
+`LABEL "label_name"`
+
+Marks a position in the sequence that can be jumped to. The label name is a string (max 20 characters).
+
+`JCF "label_name"`
+
+Jump to the specified LABEL if the immediately preceding command fails. JCF must follow a command.
+
+`JCS "label_name"`
+
+Jump to the specified LABEL if the immediately preceding command succeeds. JCS must follow a command.
+
+`EXIT status_code`
+
+Terminate the sequence with the specified status code (0 = OK, 1 = ERROR).
+
+`ERROR_MODE mode`
+
+Set error handling mode (0 = OFF/continue on error, 1 = ON/abort on error). Affects all subsequent commands until the next ERROR_MODE directive.
+
+__Sequence File Examples:__
+
+Example 1: Simple sequence with error handler using JCF
+```
+; Initialize system
+R00:00:00 CMD_POWER_ON
+R00:00:05 CMD_INITIALIZE
+
+; Attempt risky operation with error handler
+JCF "ERROR_HANDLER"
+R00:00:10 CMD_RISKY_OPERATION
+
+; Normal execution path
+R00:00:15 CMD_CONTINUE
+R00:00:20 CMD_FINALIZE
+EXIT 0
+
+; Error handler - jumps here if CMD_RISKY_OPERATION fails
+LABEL "ERROR_HANDLER"
+R00:00:00 CMD_SAFE_MODE
+R00:00:05 CMD_LOG_ERROR
+EXIT 1
+```
+
+Example 2: Using ERROR_MODE for best-effort diagnostics
+```
+; Set error mode to continue on failures
+ERROR_MODE 0
+
+; Run diagnostics - continue even if some fail
+R00:00:00 CMD_TEST_SENSOR_1
+R00:00:05 CMD_TEST_SENSOR_2
+R00:00:10 CMD_TEST_SENSOR_3
+R00:00:15 CMD_TEST_ACTUATOR
+
+; Re-enable error abort for critical commands
+ERROR_MODE 1
+R00:00:20 CMD_FINALIZE_TEST
+```
+
+Example 3: Using JCS for conditional execution
+```
+; Attempt optional optimization
+JCS "OPTIMIZED_PATH"
+R00:00:00 CMD_TRY_OPTIMIZE
+
+; Fallback path if optimization fails
+R00:00:05 CMD_STANDARD_OPERATION
+R00:00:10 CMD_CONTINUE
+EXIT 0
+
+; Optimized path - only if CMD_TRY_OPTIMIZE succeeds
+LABEL "OPTIMIZED_PATH"
+R00:00:00 CMD_FAST_OPERATION
+EXIT 0
+```
+
+Example 4: Complex error handling with multiple labels
+```
+; Main sequence
+R00:00:00 CMD_START
+
+; First critical operation
+JCF "RETRY_A"
+R00:00:05 CMD_OPERATION_A
+
+; Second critical operation
+JCF "RETRY_B"
+R00:00:10 CMD_OPERATION_B
+
+; Success path
+R00:00:15 CMD_SUCCESS
+EXIT 0
+
+; Retry handler for operation A
+LABEL "RETRY_A"
+R00:00:00 CMD_RESET
+JCF "FATAL_ERROR"
+R00:00:05 CMD_OPERATION_A
+; If retry succeeds, continue with operation B
+JCF "RETRY_B"
+R00:00:10 CMD_OPERATION_B
+R00:00:15 CMD_SUCCESS
+EXIT 0
+
+; Retry handler for operation B
+LABEL "RETRY_B"
+R00:00:00 CMD_RESET_B
+JCF "FATAL_ERROR"
+R00:00:05 CMD_OPERATION_B
+R00:00:10 CMD_SUCCESS
+EXIT 0
+
+; Fatal error - cannot recover
+LABEL "FATAL_ERROR"
+R00:00:00 CMD_SAFE_MODE
+R00:00:05 CMD_LOG_FAILURE
+EXIT 1
+```
+
 An example can be seen in the F´ GDS repository under `examples/`: https://github.com/fprime-community/fprime-gds/tree/devel/examples
 
 ### 3.4 Component State

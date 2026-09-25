@@ -67,6 +67,11 @@ module Ref {
         """
     }
 
+  instance cmdStatusTester: Ref.CmdStatusTester base id 0x10008000 \
+    queue size Default.QUEUE_SIZE \
+    stack size Default.STACK_SIZE \
+    priority 21
+
   instance dpDemo: Ref.DpDemo base id 0x0A10 \
     queue size Default.QUEUE_SIZE \
     stack size Default.STACK_SIZE \

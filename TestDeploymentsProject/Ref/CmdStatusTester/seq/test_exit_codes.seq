@@ -1,0 +1,18 @@
+; Test EXIT directive with different status codes
+; This sequence demonstrates using EXIT 0 (success) and EXIT 1 (error)
+
+; Successful path
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 100 1.0 true
+R00:00:05 Ref.cmdStatusTester.TEST_CMD_SUCCESS 200 2.0 false
+
+; Set up a choice point
+JCS "SUCCESS_EXIT"
+R00:00:10 Ref.cmdStatusTester.TEST_CMD_SUCCESS 300 3.0 true
+
+; Shouldn't reach here
+EXIT 1
+
+; Success exit
+LABEL "SUCCESS_EXIT"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 400 4.0 false
+EXIT 0

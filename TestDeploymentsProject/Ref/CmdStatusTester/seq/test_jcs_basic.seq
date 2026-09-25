@@ -1,0 +1,15 @@
+; Test basic JCS (Jump on Command Success) directive
+; This sequence demonstrates jumping to a success path when a command succeeds
+
+; Try a command that might succeed - in this case it always succeeds
+JCS "SUCCESS_PATH"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 100 2.5 true
+
+; This should NOT execute because the previous command succeeds and jumps
+R00:00:05 Ref.cmdStatusTester.TEST_CMD_SUCCESS 200 4.0 false
+EXIT 1
+
+; Success path - execution jumps here when Ref.cmdStatusTester.TEST_CMD_SUCCESS succeeds
+LABEL "SUCCESS_PATH"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 300 6.0 true
+EXIT 0

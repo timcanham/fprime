@@ -1,0 +1,31 @@
+; Test ERROR_MODE OFF combined with JCF
+; Demonstrates that JCF takes precedence over ERROR_MODE
+
+; Turn off error mode
+ERROR_MODE 0
+
+; First failing command - will continue because ERROR_MODE is OFF
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 100 1.0 true
+R00:00:05 Ref.cmdStatusTester.TEST_CMD_FAIL 200 -20 "no_jump_no_abort"
+
+; This should execute because ERROR_MODE is OFF and no JCF was set
+R00:00:10 Ref.cmdStatusTester.TEST_CMD_SUCCESS 300 3.0 false
+
+; Now set JCF - it takes precedence over ERROR_MODE OFF
+JCF "ERROR_HANDLER"
+R00:00:15 Ref.cmdStatusTester.TEST_CMD_FAIL 400 -40 "jump_despite_em"
+
+; Should NOT reach here because JCF takes precedence
+R00:00:20 Ref.cmdStatusTester.TEST_CMD_SUCCESS 999 99.9 true
+EXIT 1
+
+; Error handler
+LABEL "ERROR_HANDLER"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 500 5.0 false
+
+; ERROR_MODE is still OFF, so this failure continues
+R00:00:05 Ref.cmdStatusTester.TEST_CMD_FAIL 600 -60 "continue_on_fail"
+
+; Should execute
+R00:00:10 Ref.cmdStatusTester.TEST_CMD_SUCCESS 700 7.0 true
+EXIT 0

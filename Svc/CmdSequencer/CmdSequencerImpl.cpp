@@ -664,20 +664,20 @@ void CmdSequencerComponentImpl ::setCmdTimeout(const Fw::Time& currentTime) {
 bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record) {
     // Extract directive ID from command buffer
     Fw::ExternalSerializeBuffer dirBuf(const_cast<U8*>(record.m_command.getBuffAddr()),
-                                       record.m_command.getBuffLength());
-    dirBuf.setBuffLen(record.m_command.getBuffLength());
+                                       record.m_command.getSize());
+    dirBuf.setBuffLen(record.m_command.getSize());
 
     U8 directiveId;
     Fw::SerializeStatus status = dirBuf.deserializeTo(directiveId);
     if (status != Fw::FW_SERIALIZE_OK) {
-        this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+        this->log_WARNING_HI_CS_RecordInvalid(this->m_sequence->getLogFileName(), this->m_executedCount, status);
         this->error();
         return false;
     }
 
     // Validate directive ID
     if (directiveId > Sequence::Record::ERROR_MODE) {
-        this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, directiveId);
+        this->log_WARNING_HI_CS_RecordInvalid(this->m_sequence->getLogFileName(), this->m_executedCount, directiveId);
         this->error();
         return false;
     }
@@ -703,7 +703,7 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
             U8 labelLen;
             status = dirBuf.deserializeTo(labelLen);
             if (status != Fw::FW_SERIALIZE_OK) {
-                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_sequence->getLogFileName(), this->m_executedCount, status);
                 this->error();
                 return false;
             }
@@ -712,14 +712,14 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
             char labelBuf[21];  // Max 20 chars + null terminator
             FwSizeType readSize = labelLen;
             if (readSize > 20) {
-                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, readSize);
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_sequence->getLogFileName(), this->m_executedCount, static_cast<I32>(readSize));
                 this->error();
                 return false;
             }
 
             status = dirBuf.deserializeTo(reinterpret_cast<U8*>(labelBuf), readSize, Fw::Serialization::OMIT_LENGTH);
             if (status != Fw::FW_SERIALIZE_OK) {
-                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_sequence->getLogFileName(), this->m_executedCount, status);
                 this->error();
                 return false;
             }
@@ -736,14 +736,14 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
             U8 exitStatus;
             status = dirBuf.deserializeTo(exitStatus);
             if (status != Fw::FW_SERIALIZE_OK) {
-                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_sequence->getLogFileName(), this->m_executedCount, status);
                 this->error();
                 return false;
             }
 
             // Validate status code
             if (exitStatus > 1) {
-                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, exitStatus);
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_sequence->getLogFileName(), this->m_executedCount, exitStatus);
                 this->error();
                 return false;
             }
@@ -767,7 +767,7 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
             U8 labelLen;
             status = dirBuf.deserializeTo(labelLen);
             if (status != Fw::FW_SERIALIZE_OK) {
-                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_sequence->getLogFileName(), this->m_executedCount, status);
                 this->error();
                 return false;
             }
@@ -776,14 +776,14 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
             char labelBuf[21];  // Max 20 chars + null terminator
             FwSizeType readSize = labelLen;
             if (readSize > 20) {
-                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, readSize);
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_sequence->getLogFileName(), this->m_executedCount, static_cast<I32>(readSize));
                 this->error();
                 return false;
             }
 
             status = dirBuf.deserializeTo(reinterpret_cast<U8*>(labelBuf), readSize, Fw::Serialization::OMIT_LENGTH);
             if (status != Fw::FW_SERIALIZE_OK) {
-                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_sequence->getLogFileName(), this->m_executedCount, status);
                 this->error();
                 return false;
             }
@@ -800,14 +800,14 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
             U8 mode;
             status = dirBuf.deserializeTo(mode);
             if (status != Fw::FW_SERIALIZE_OK) {
-                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_sequence->getLogFileName(), this->m_executedCount, status);
                 this->error();
                 return false;
             }
 
             // Validate mode
             if (mode > 1) {
-                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, mode);
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_sequence->getLogFileName(), this->m_executedCount, mode);
                 this->error();
                 return false;
             }
@@ -837,8 +837,8 @@ bool CmdSequencerComponentImpl ::jumpToLabel(const Fw::StringBase& labelName) {
         if (searchRecord.m_descriptor == Sequence::Record::SEQUENCE_DIRECTIVE) {
             // Parse the directive
             Fw::ExternalSerializeBuffer dirBuf(const_cast<U8*>(searchRecord.m_command.getBuffAddr()),
-                                               searchRecord.m_command.getBuffLength());
-            dirBuf.setBuffLen(searchRecord.m_command.getBuffLength());
+                                               searchRecord.m_command.getSize());
+            dirBuf.setBuffLen(searchRecord.m_command.getSize());
 
             U8 directiveId;
             Fw::SerializeStatus status = dirBuf.deserializeTo(directiveId);

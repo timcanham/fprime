@@ -1,0 +1,30 @@
+; Test ERROR_MODE toggling between ON and OFF
+; This sequence demonstrates switching error handling modes during execution
+
+; Start with ERROR_MODE OFF
+ERROR_MODE 0
+
+; These failing commands should not abort
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 100 1.0 true
+R00:00:05 Ref.cmdStatusTester.TEST_CMD_FAIL 200 -20 "no_abort_1"
+R00:00:10 Ref.cmdStatusTester.TEST_CMD_SUCCESS 300 3.0 false
+R00:00:15 Ref.cmdStatusTester.TEST_CMD_FAIL 400 -40 "no_abort_2"
+
+; Turn ERROR_MODE back ON
+ERROR_MODE 1
+
+; This successful command should work fine
+R00:00:20 Ref.cmdStatusTester.TEST_CMD_SUCCESS 500 5.0 true
+
+; Set up error handler for the next failing command
+JCF "RECOVERY"
+R00:00:25 Ref.cmdStatusTester.TEST_CMD_FAIL 600 -60 "abort_with_handler"
+
+; Should not reach here
+R00:00:30 Ref.cmdStatusTester.TEST_CMD_SUCCESS 999 99.9 false
+EXIT 1
+
+; Recovery handler
+LABEL "RECOVERY"
+R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 700 7.0 true
+EXIT 0
