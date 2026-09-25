@@ -37,7 +37,11 @@ CmdSequencerComponentImpl::CmdSequencerComponentImpl(const char* name)
       m_blockState(Svc::BlockState::NO_BLOCK),
       m_opCode(0),
       m_cmdSeq(0),
-      m_join_waiting(false) {}
+      m_join_waiting(false),
+      m_jcfActive(false),
+      m_jcfTarget(""),
+      m_jcsActive(false),
+      m_jcsTarget("") {}
 
 void CmdSequencerComponentImpl::setTimeout(const U32 timeout) {
     this->m_timeout = timeout;
@@ -288,6 +292,13 @@ void CmdSequencerComponentImpl::performCmd_Cancel() {
     this->m_cmdTimer.clear();
     this->m_cmdTimeoutTimer.clear();
     this->m_executedCount = 0;
+
+    // Clear JCF and JCS state
+    this->m_jcfActive = false;
+    this->m_jcfTarget = "";
+    this->m_jcsActive = false;
+    this->m_jcsTarget = "";
+
     // write sequence done port with error, if connected
     if (this->isConnected_seqDone_OutputPort(0)) {
         this->seqDone_out(0, 0, 0, Fw::CmdResponse::EXECUTION_ERROR);
@@ -313,24 +324,101 @@ void CmdSequencerComponentImpl ::cmdResponseIn_handler(FwIndexType portNum,
         // clear command timeout
         this->m_cmdTimeoutTimer.clear();
         if (response != Fw::CmdResponse::OK) {
-            this->commandError(this->m_executedCount, opcode, response.e);
-            this->performCmd_Cancel();
-        } else if (this->m_runMode == RUNNING && this->m_stepMode == AUTO) {
-            // Auto mode
-            this->commandComplete(opcode);
-            if (not this->m_sequence->hasMoreRecords()) {
-                // No data left
-                this->m_runMode = STOPPED;
-                this->sequenceComplete();
+            // Command failed
+            if (this->m_jcfActive) {
+                // Jump Command Failure is active, attempt to jump to label
+                this->commandError(this->m_executedCount, opcode, response.e);
+
+                if (this->jumpToLabel(this->m_jcfTarget)) {
+                    // Successfully jumped to label
+                    this->log_ACTIVITY_HI_CS_SequenceCanceled(this->m_sequence->getLogFileName());
+
+                    // Clear JCF state
+                    this->m_jcfActive = false;
+                    this->m_jcfTarget = "";
+
+                    // Continue execution from label if in auto mode
+                    if (this->m_runMode == RUNNING && this->m_stepMode == AUTO) {
+                        if (this->m_sequence->hasMoreRecords()) {
+                            this->performCmd_Step();
+                        } else {
+                            this->m_runMode = STOPPED;
+                            this->sequenceComplete();
+                        }
+                    }
+                } else {
+                    // Label not found, abort sequence
+                    this->log_WARNING_HI_CS_CommandError(this->m_sequence->getLogFileName(),
+                                                         this->m_executedCount,
+                                                         CmdDispatcherCfg::getEventOpcode(opcode),
+                                                         response.e);
+                    this->m_jcfActive = false;
+                    this->m_jcfTarget = "";
+                    this->performCmd_Cancel();
+                }
             } else {
-                this->performCmd_Step();
+                // No JCF active, abort sequence as normal
+                this->commandError(this->m_executedCount, opcode, response.e);
+                this->performCmd_Cancel();
             }
         } else {
-            // Manual step mode
-            this->commandComplete(opcode);
-            if (not this->m_sequence->hasMoreRecords()) {
-                this->m_runMode = STOPPED;
-                this->sequenceComplete();
+            // Command succeeded
+            // Clear any active JCF
+            this->m_jcfActive = false;
+            this->m_jcfTarget = "";
+
+            // Check if JCS (Jump Command Success) is active
+            if (this->m_jcsActive) {
+                // Jump Command Success is active, attempt to jump to label
+                this->commandComplete(opcode);
+
+                if (this->jumpToLabel(this->m_jcsTarget)) {
+                    // Successfully jumped to label
+                    this->log_ACTIVITY_HI_CS_SequenceCanceled(this->m_sequence->getLogFileName());
+
+                    // Clear JCS state
+                    this->m_jcsActive = false;
+                    this->m_jcsTarget = "";
+
+                    // Continue execution from label if in auto mode
+                    if (this->m_runMode == RUNNING && this->m_stepMode == AUTO) {
+                        if (this->m_sequence->hasMoreRecords()) {
+                            this->performCmd_Step();
+                        } else {
+                            this->m_runMode = STOPPED;
+                            this->sequenceComplete();
+                        }
+                    }
+                } else {
+                    // Label not found, abort sequence
+                    this->log_WARNING_HI_CS_CommandError(this->m_sequence->getLogFileName(),
+                                                         this->m_executedCount,
+                                                         CmdDispatcherCfg::getEventOpcode(opcode),
+                                                         0);  // No error code for success case
+                    this->m_jcsActive = false;
+                    this->m_jcsTarget = "";
+                    this->performCmd_Cancel();
+                }
+            } else {
+                // No JCS active, continue normally
+                if (this->m_runMode == RUNNING && this->m_stepMode == AUTO) {
+                    // Auto mode
+                    this->commandComplete(opcode);
+                    if (not this->m_sequence->hasMoreRecords()) {
+                        // No data left
+                        this->m_runMode = STOPPED;
+                        this->sequenceComplete();
+                    } else {
+                        this->performCmd_Step();
+                    }
+                } else {
+                    // Manual step mode
+                    this->commandComplete(opcode);
+                    if (not this->m_sequence->hasMoreRecords()) {
+                        this->m_runMode = STOPPED;
+                        this->sequenceComplete();
+                    }
+                }
             }
         }
     }
@@ -461,12 +549,31 @@ void CmdSequencerComponentImpl::performCmd_Step() {
         case Sequence::Record::ABSOLUTE:
             this->performCmd_Step_ABSOLUTE(currentTime);
             break;
+        case Sequence::Record::SEQUENCE_DIRECTIVE:
+            // Execute the directive
+            if (!this->executeDirective(m_record)) {
+                // Directive execution failed, abort sequence
+                this->performCmd_Cancel();
+            } else if (this->m_runMode == RUNNING && this->m_stepMode == AUTO) {
+                // Directive executed successfully in auto mode, continue to next record
+                if (this->m_sequence->hasMoreRecords()) {
+                    this->performCmd_Step();
+                } else {
+                    this->m_runMode = STOPPED;
+                    this->sequenceComplete();
+                }
+            }
+            break;
         default:
             FW_ASSERT(false, m_record.m_descriptor);
     }
 }
 
 void CmdSequencerComponentImpl::sequenceComplete() {
+    this->sequenceComplete(Fw::CmdResponse::OK);
+}
+
+void CmdSequencerComponentImpl::sequenceComplete(const Fw::CmdResponse& status) {
     FW_ASSERT(this->m_sequence != nullptr);
     ++this->m_sequencesCompletedCount;
     // reset buffer
@@ -476,11 +583,11 @@ void CmdSequencerComponentImpl::sequenceComplete() {
     this->m_executedCount = 0;
     // write sequence done port, if connected
     if (this->isConnected_seqDone_OutputPort(0)) {
-        this->seqDone_out(0, 0, 0, Fw::CmdResponse::OK);
+        this->seqDone_out(0, 0, 0, status);
     }
 
     if (Svc::BlockState::BLOCK == this->m_blockState || m_join_waiting) {
-        this->cmdResponse_out(this->m_opCode, this->m_cmdSeq, Fw::CmdResponse::OK);
+        this->cmdResponse_out(this->m_opCode, this->m_cmdSeq, status);
     }
 
     m_join_waiting = false;
@@ -524,6 +631,199 @@ void CmdSequencerComponentImpl ::setCmdTimeout(const Fw::Time& currentTime) {
         expTime.add(this->m_timeout, 0);
         this->m_cmdTimeoutTimer.set(expTime);
     }
+}
+
+bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record) {
+    // Extract directive ID from command buffer
+    Fw::ExternalSerializeBuffer dirBuf(const_cast<U8*>(record.m_command.getBuffAddr()),
+                                       record.m_command.getBuffLength());
+    dirBuf.setBuffLen(record.m_command.getBuffLength());
+
+    U8 directiveId;
+    Fw::SerializeStatus status = dirBuf.deserializeTo(directiveId);
+    if (status != Fw::FW_SERIALIZE_OK) {
+        this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+        this->error();
+        return false;
+    }
+
+    // Validate directive ID
+    if (directiveId > Sequence::Record::JCS) {
+        this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, directiveId);
+        this->error();
+        return false;
+    }
+
+    Sequence::Record::DirectiveId directive = static_cast<Sequence::Record::DirectiveId>(directiveId);
+
+    switch (directive) {
+        case Sequence::Record::LABEL: {
+            // LABEL is a no-op at execution time
+            // It just marks a position for jumping
+            break;
+        }
+        case Sequence::Record::JCF: {
+            // JCF: Jump Command Failure
+            // Check if this is before any command has executed
+            if (this->m_executedCount == 0) {
+                this->log_WARNING_HI_CS_InvalidMode();
+                this->error();
+                return false;
+            }
+
+            // Extract the target label name
+            U8 labelLen;
+            status = dirBuf.deserializeTo(labelLen);
+            if (status != Fw::FW_SERIALIZE_OK) {
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+                this->error();
+                return false;
+            }
+
+            // Read label string
+            char labelBuf[21];  // Max 20 chars + null terminator
+            FwSizeType readSize = labelLen;
+            if (readSize > 20) {
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, readSize);
+                this->error();
+                return false;
+            }
+
+            status = dirBuf.deserializeTo(reinterpret_cast<U8*>(labelBuf), readSize, Fw::Serialization::OMIT_LENGTH);
+            if (status != Fw::FW_SERIALIZE_OK) {
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+                this->error();
+                return false;
+            }
+            labelBuf[readSize] = '\0';
+
+            // Store the JCF target
+            this->m_jcfTarget = labelBuf;
+            this->m_jcfActive = true;
+            break;
+        }
+        case Sequence::Record::EXIT: {
+            // EXIT: Terminate sequence with specified status
+            // Extract the status code (0 = OK, 1 = EXECUTION_ERROR)
+            U8 exitStatus;
+            status = dirBuf.deserializeTo(exitStatus);
+            if (status != Fw::FW_SERIALIZE_OK) {
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+                this->error();
+                return false;
+            }
+
+            // Validate status code
+            if (exitStatus > 1) {
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, exitStatus);
+                this->error();
+                return false;
+            }
+
+            // Stop the sequence and complete with specified status
+            this->m_runMode = STOPPED;
+            Fw::CmdResponse exitResponse = (exitStatus == 0) ? Fw::CmdResponse::OK : Fw::CmdResponse::EXECUTION_ERROR;
+            this->sequenceComplete(exitResponse);
+            break;
+        }
+        case Sequence::Record::JCS: {
+            // JCS: Jump Command Success
+            // Check if this is before any command has executed
+            if (this->m_executedCount == 0) {
+                this->log_WARNING_HI_CS_InvalidMode();
+                this->error();
+                return false;
+            }
+
+            // Extract the target label name
+            U8 labelLen;
+            status = dirBuf.deserializeTo(labelLen);
+            if (status != Fw::FW_SERIALIZE_OK) {
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+                this->error();
+                return false;
+            }
+
+            // Read label string
+            char labelBuf[21];  // Max 20 chars + null terminator
+            FwSizeType readSize = labelLen;
+            if (readSize > 20) {
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, readSize);
+                this->error();
+                return false;
+            }
+
+            status = dirBuf.deserializeTo(reinterpret_cast<U8*>(labelBuf), readSize, Fw::Serialization::OMIT_LENGTH);
+            if (status != Fw::FW_SERIALIZE_OK) {
+                this->log_WARNING_HI_CS_RecordInvalid(this->m_executedCount, status);
+                this->error();
+                return false;
+            }
+            labelBuf[readSize] = '\0';
+
+            // Store the JCS target
+            this->m_jcsTarget = labelBuf;
+            this->m_jcsActive = true;
+            break;
+        }
+        default:
+            FW_ASSERT(false, directive);
+    }
+
+    return true;
+}
+
+bool CmdSequencerComponentImpl ::jumpToLabel(const Fw::StringBase& labelName) {
+    FW_ASSERT(this->m_sequence != nullptr);
+
+    // Reset to beginning of sequence to search for label
+    this->m_sequence->reset();
+
+    // Search through all records looking for matching LABEL directive
+    while (this->m_sequence->hasMoreRecords()) {
+        Sequence::Record searchRecord;
+        this->m_sequence->nextRecord(searchRecord);
+
+        if (searchRecord.m_descriptor == Sequence::Record::SEQUENCE_DIRECTIVE) {
+            // Parse the directive
+            Fw::ExternalSerializeBuffer dirBuf(const_cast<U8*>(searchRecord.m_command.getBuffAddr()),
+                                               searchRecord.m_command.getBuffLength());
+            dirBuf.setBuffLen(searchRecord.m_command.getBuffLength());
+
+            U8 directiveId;
+            Fw::SerializeStatus status = dirBuf.deserializeTo(directiveId);
+            if (status != Fw::FW_SERIALIZE_OK) {
+                continue;  // Skip malformed directive
+            }
+
+            if (directiveId == Sequence::Record::LABEL) {
+                // Extract label name
+                U8 labelLen;
+                status = dirBuf.deserializeTo(labelLen);
+                if (status != Fw::FW_SERIALIZE_OK || labelLen > 20) {
+                    continue;
+                }
+
+                char labelBuf[21];
+                FwSizeType readSize = labelLen;
+                status = dirBuf.deserializeTo(reinterpret_cast<U8*>(labelBuf), readSize,
+                                              Fw::Serialization::OMIT_LENGTH);
+                if (status != Fw::FW_SERIALIZE_OK) {
+                    continue;
+                }
+                labelBuf[readSize] = '\0';
+
+                // Check if this is the label we're looking for
+                if (labelName == labelBuf) {
+                    // Found it! The next record will be executed
+                    return true;
+                }
+            }
+        }
+    }
+
+    // Label not found
+    return false;
 }
 
 }  // namespace Svc

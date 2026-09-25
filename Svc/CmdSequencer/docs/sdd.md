@@ -230,10 +230,64 @@ The format for each record is as follows:
 
 Record Field | Size (bytes) | Description
 ------------ | ------------ | -----------
-Descriptor | 1 | What kind of record it is. 0 = absolute time command, 1 = relative time command, 2 = end of sequence
-Command Time | 8 | Start time of command. Depending on descriptor, will be relative or absolute. First four bytes are seconds of command, second four bytes are microseconds of command.
-Record Size | 4 | Size of command buffer
-Command Buffer | >= 4 | Buffer containing command packet descriptor, command opcode, and zero or more serialized arguments.
+Descriptor | 1 | What kind of record it is. 0 = absolute time command, 1 = relative time command, 2 = end of sequence, 3 = sequence directive
+Command Time | 8 | Start time of command. Depending on descriptor, will be relative or absolute. First four bytes are seconds of command, second four bytes are microseconds of command. For sequence directives, this field is ignored and can be set to zero.
+Record Size | 4 | Size of command buffer (or directive buffer for sequence directives)
+Command Buffer | >= 4 | Buffer containing command packet descriptor, command opcode, and zero or more serialized arguments. For sequence directives, contains directive ID and directive-specific arguments.
+
+**Sequence Directives:**
+When the descriptor field is 3 (sequence directive), the command buffer contains a directive instead of a command. The format is:
+
+Directive Field | Size (bytes) | Description
+--------------- | ------------ | -----------
+Directive ID | 1 | Identifies the directive type. 0 = LABEL, 1 = JCF (Jump Command Failure), 2 = EXIT, 3 = JCS (Jump Command Success)
+Arguments | Variable | Directive-specific arguments
+
+**Directive Types:**
+
+1. **LABEL** (Directive ID = 0): Marks a position in the sequence that can be jumped to by other directives.
+   - Arguments: Text string (label name, max 20 characters)
+   - Behavior: No-op when executed; serves as a jump target
+   - Multiple LABELs may exist in a sequence and must have unique names
+
+2. **JCF (Jump Command Failure)** (Directive ID = 1): Specifies a LABEL to jump to if the immediately preceding command fails.
+   - Arguments: Text string (target label name, max 20 characters)
+   - Behavior: If the last executed command returns a failed status, the sequencer jumps to the specified LABEL instead of aborting the sequence. If the command succeeds, the JCF is ignored and execution continues normally.
+   - Scope: Applies only to the immediately preceding command
+   - Error Conditions:
+     - If JCF is encountered before any command has executed, the sequence aborts with an error event
+     - If the target LABEL is not found at runtime, the sequence aborts with an error event
+     - The sequence file generator tool should validate that all referenced labels exist in the sequence
+
+3. **EXIT** (Directive ID = 2): Terminates the sequence with a specified completion status.
+   - Arguments: U8 status code (0 = OK, 1 = EXECUTION_ERROR)
+   - Behavior: Immediately stops sequence execution and completes the sequence with the specified status. For sequences called via the seqRunIn port, this status is returned on the seqDone port. For command-driven sequences (CS_RUN), this status is returned as the command response (if in BLOCK mode or CS_JOIN_WAIT was called).
+   - Use Cases:
+     - Early termination of a sequence based on conditions
+     - Error handling paths that should return specific status codes
+     - Conditional sequence execution flows
+
+4. **JCS (Jump Command Success)** (Directive ID = 3): Specifies a LABEL to jump to if the immediately preceding command succeeds.
+   - Arguments: Text string (target label name, max 20 characters)
+   - Behavior: If the last executed command returns a successful status (OK), the sequencer jumps to the specified LABEL. If the command fails, the JCS is ignored and the sequence aborts as normal (unless a JCF is also active).
+   - Scope: Applies only to the immediately preceding command
+   - Use Cases:
+     - Conditional execution paths based on command success
+     - Skipping error handling code when operations succeed
+     - Implementing try-success-else patterns in sequences
+   - Error Conditions:
+     - If JCS is encountered before any command has executed, the sequence aborts with an error event
+     - If the target LABEL is not found at runtime, the sequence aborts with an error event
+     - The sequence file generator tool should validate that all referenced labels exist in the sequence
+   - Note: JCS and JCF can both be active for the same command. If both are present, only one will execute depending on the command result (JCF on failure, JCS on success)
+
+**Directive State Management:**
+- When a JCF directive is executed, the target label is stored in component state
+- After the next command completes, if it failed and a JCF is active, the sequencer searches for the matching LABEL and jumps to the record immediately following it
+- If the command succeeds, the JCF state is cleared
+- Multiple consecutive JCF directives will result in only the last one being active
+- Jump direction is unrestricted (forward or backward jumps are allowed)
+- No loop prevention mechanism is provided; sequence writers must avoid infinite loops
 
 **CRC value:**
 The last 4 bytes of the file is a CRC of the entire file as computed by Utils/Hash.hpp

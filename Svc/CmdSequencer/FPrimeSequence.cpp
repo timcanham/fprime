@@ -253,7 +253,7 @@ Fw::SerializeStatus CmdSequencerComponentImpl::FPrimeSequence ::deserializeDescr
         return status;
     }
 
-    if (descEntry > Sequence::Record::END_OF_SEQUENCE) {
+    if (descEntry > Sequence::Record::SEQUENCE_DIRECTIVE) {
         return Fw::FW_DESERIALIZE_FORMAT_ERROR;
     }
 

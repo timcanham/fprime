@@ -180,9 +180,17 @@ class CmdSequencerComponentImpl final : public CmdSequencerComponentBase {
         class Record {
           public:
             enum Descriptor {
-                ABSOLUTE,        //!< Absolute time
-                RELATIVE,        //!< Relative time
-                END_OF_SEQUENCE  //!< end of sequence
+                ABSOLUTE,            //!< Absolute time
+                RELATIVE,            //!< Relative time
+                END_OF_SEQUENCE,     //!< end of sequence
+                SEQUENCE_DIRECTIVE   //!< sequence directive
+            };
+
+            enum DirectiveId {
+                LABEL = 0,  //!< Label directive - marks a jump target
+                JCF = 1,    //!< Jump Command Failure - jump to label on command failure
+                EXIT = 2,   //!< Exit sequence with specified status
+                JCS = 3     //!< Jump Command Success - jump to label on command success
             };
 
           public:
@@ -632,6 +640,10 @@ class CmdSequencerComponentImpl final : public CmdSequencerComponentBase {
     //! Record a sequence complete event
     void sequenceComplete();
 
+    //! Record a sequence complete event with specified status
+    void sequenceComplete(const Fw::CmdResponse& status  //!< The completion status
+    );
+
     //! Record an error
     void error();
 
@@ -652,6 +664,16 @@ class CmdSequencerComponentImpl final : public CmdSequencerComponentBase {
 
     //! Sequence run helper
     void doSequenceRun(const Fw::StringBase& fileName);
+
+    //! Execute a sequence directive
+    //! \return true if sequence should continue, false if error
+    bool executeDirective(const Sequence::Record& record  //!< The directive record
+    );
+
+    //! Search for a label in the sequence and jump to it
+    //! \return true if label found and jumped, false otherwise
+    bool jumpToLabel(const Fw::StringBase& labelName  //!< The label to find
+    );
 
   private:
     // ----------------------------------------------------------------------
@@ -705,6 +727,14 @@ class CmdSequencerComponentImpl final : public CmdSequencerComponentBase {
     FwOpcodeType m_opCode;
     U32 m_cmdSeq;
     bool m_join_waiting;
+
+    //! Jump Command Failure (JCF) state
+    bool m_jcfActive;                //!< Whether a JCF is currently set
+    Fw::String m_jcfTarget;          //!< Target label for JCF
+
+    //! Jump Command Success (JCS) state
+    bool m_jcsActive;                //!< Whether a JCS is currently set
+    Fw::String m_jcsTarget;          //!< Target label for JCS
 
     //! Telemetry to update sequence not running
     const Fw::String NO_SEQ{"<no seq>"};
