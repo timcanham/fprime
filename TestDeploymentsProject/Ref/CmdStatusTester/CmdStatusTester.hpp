@@ -1,5 +1,5 @@
 // ======================================================================
-// \title  CmdStatusTesterComponentImpl.hpp
+// \title  CmdStatusTester.hpp
 // \author Generated
 // \brief  hpp file for CmdStatusTester component implementation class
 //
@@ -10,14 +10,14 @@
 //
 // ======================================================================
 
-#ifndef CmdStatusTester_HPP
-#define CmdStatusTester_HPP
+#ifndef Ref_CmdStatusTester_HPP
+#define Ref_CmdStatusTester_HPP
 
 #include "Ref/CmdStatusTester/CmdStatusTesterComponentAc.hpp"
 
 namespace Ref {
 
-class CmdStatusTesterComponentImpl final : public CmdStatusTesterComponentBase {
+class CmdStatusTester final : public CmdStatusTesterComponentBase {
   public:
     // ----------------------------------------------------------------------
     // Construction, initialization, and destruction
@@ -25,12 +25,12 @@ class CmdStatusTesterComponentImpl final : public CmdStatusTesterComponentBase {
 
     //! Construct object CmdStatusTester
     //!
-    CmdStatusTesterComponentImpl(const char* const compName /*!< The component name*/
+    CmdStatusTester(const char* const compName /*!< The component name*/
     );
 
     //! Destroy object CmdStatusTester
     //!
-    ~CmdStatusTesterComponentImpl();
+    ~CmdStatusTester();
 
   private:
     // ----------------------------------------------------------------------

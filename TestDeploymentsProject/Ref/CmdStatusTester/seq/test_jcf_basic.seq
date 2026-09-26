@@ -4,15 +4,15 @@
 ; Execute a successful command first
 R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 100 1.5 true
 
-; Set up error handler and execute a failing command
-JCF "ERROR_HANDLER"
+; Execute a failing command, then JCF checks its status and jumps
 R00:00:05 Ref.cmdStatusTester.TEST_CMD_FAIL 200 -10 "fail_test"
+JCF "ERROR_HANDLER"
 
-; This should NOT execute because the previous command fails and jumps
+; This should NOT execute because the previous command failed and JCF jumped
 R00:00:10 Ref.cmdStatusTester.TEST_CMD_SUCCESS 999 99.9 false
 EXIT 0
 
-; Error handler - execution jumps here when Ref.cmdStatusTester.TEST_CMD_FAIL fails
+; Error handler - execution jumps here when JCF detects TEST_CMD_FAIL failure
 LABEL "ERROR_HANDLER"
 R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 300 3.0 true
 EXIT 1

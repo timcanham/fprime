@@ -11,9 +11,9 @@ R00:00:05 Ref.cmdStatusTester.TEST_CMD_FAIL 200 -20 "no_jump_no_abort"
 ; This should execute because ERROR_MODE is OFF and no JCF was set
 R00:00:10 Ref.cmdStatusTester.TEST_CMD_SUCCESS 300 3.0 false
 
-; Now set JCF - it takes precedence over ERROR_MODE OFF
-JCF "ERROR_HANDLER"
+; Execute failing command, then JCF checks status - takes precedence over ERROR_MODE OFF
 R00:00:15 Ref.cmdStatusTester.TEST_CMD_FAIL 400 -40 "jump_despite_em"
+JCF "ERROR_HANDLER"
 
 ; Should NOT reach here because JCF takes precedence
 R00:00:20 Ref.cmdStatusTester.TEST_CMD_SUCCESS 999 99.9 true

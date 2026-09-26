@@ -16,9 +16,9 @@ ERROR_MODE 1
 ; This successful command should work fine
 R00:00:20 Ref.cmdStatusTester.TEST_CMD_SUCCESS 500 5.0 true
 
-; Set up error handler for the next failing command
-JCF "RECOVERY"
+; Execute failing command, then JCF checks status and jumps to error handler
 R00:00:25 Ref.cmdStatusTester.TEST_CMD_FAIL 600 -60 "abort_with_handler"
+JCF "RECOVERY"
 
 ; Should not reach here
 R00:00:30 Ref.cmdStatusTester.TEST_CMD_SUCCESS 999 99.9 false

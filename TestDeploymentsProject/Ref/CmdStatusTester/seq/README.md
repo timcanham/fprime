@@ -9,12 +9,12 @@ This directory contains test sequences for validating the sequence directive sys
 1. **test_jcf_basic.seq** - Jump on Command Failure (JCF)
    - Tests basic JCF directive functionality
    - Demonstrates jumping to an error handler when a command fails
-   - Expected: Executes TEST_CMD_SUCCESS, then TEST_CMD_FAIL triggers jump to ERROR_HANDLER, exits with status 1
+   - Expected: Executes TEST_CMD_SUCCESS, then TEST_CMD_FAIL executes, JCF checks status and jumps to ERROR_HANDLER, exits with status 1
 
 2. **test_jcs_basic.seq** - Jump on Command Success (JCS)
    - Tests basic JCS directive functionality
    - Demonstrates jumping to a success path when a command succeeds
-   - Expected: TEST_CMD_SUCCESS triggers jump to SUCCESS_PATH, skips intermediate commands, exits with status 0
+   - Expected: TEST_CMD_SUCCESS executes, JCS checks status and jumps to SUCCESS_PATH, skips intermediate commands, exits with status 0
 
 3. **test_exit_codes.seq** - EXIT Directive
    - Tests EXIT directive with different status codes
@@ -41,9 +41,9 @@ This directory contains test sequences for validating the sequence directive sys
 ### Advanced Patterns
 
 7. **test_jcf_and_jcs.seq** - Combined JCF and JCS
-   - Tests using both JCF and JCS on the same command
+   - Tests using both JCF and JCS after the same command
    - Demonstrates that only one directive executes based on command result
-   - Expected: JCF executes for failing command, JCS executes for successful command
+   - Expected: For failing command, JCF jumps (JCS ignored); for successful command, JCS jumps (JCF ignored)
 
 8. **test_retry_pattern.seq** - Retry Pattern
    - Tests a common retry pattern with multiple error handlers
@@ -117,14 +117,24 @@ This directory contains test sequences for validating the sequence directive sys
 - Referenced by JCF and JCS directives
 
 ### JCF "label"
-- Sets jump target for next command's failure
-- Cleared after next command executes (success or failure)
+- **Placement**: Must appear AFTER the command whose status it checks
+- Checks the previous command's status and jumps if it failed
 - Takes precedence over ERROR_MODE setting
+- Example:
+  ```
+  R00:00:00 Ref.cmdStatusTester.TEST_CMD_FAIL 100 -10 "test"
+  JCF "ERROR_HANDLER"   ; Checks previous command and jumps if it failed
+  ```
 
 ### JCS "label"
-- Sets jump target for next command's success
-- Cleared after next command executes (success or failure)
+- **Placement**: Must appear AFTER the command whose status it checks
+- Checks the previous command's status and jumps if it succeeded
 - Works independently from ERROR_MODE
+- Example:
+  ```
+  R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 100 1.0 true
+  JCS "SUCCESS_PATH"   ; Checks previous command and jumps if it succeeded
+  ```
 
 ### EXIT status
 - Terminates sequence immediately

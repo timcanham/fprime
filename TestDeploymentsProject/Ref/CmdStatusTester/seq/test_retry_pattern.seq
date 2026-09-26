@@ -4,9 +4,9 @@
 ; Main sequence - attempt primary operation
 R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 100 1.0 true
 
-; Attempt operation A with retry
-JCF "RETRY_A"
+; Attempt operation A, then JCF checks status and jumps to retry on failure
 R00:00:05 Ref.cmdStatusTester.TEST_CMD_FAIL 200 -20 "operation_a_fail"
+JCF "RETRY_A"
 
 ; If we get here, operation A succeeded (but it won't)
 R00:00:10 Ref.cmdStatusTester.TEST_CMD_SUCCESS 300 3.0 false
@@ -16,9 +16,9 @@ EXIT 0
 LABEL "RETRY_A"
 R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 250 2.5 true
 
-; Try operation A again
-JCF "FATAL_ERROR"
+; Try operation A again, JCF checks status and jumps to fatal error on failure
 R00:00:05 Ref.cmdStatusTester.TEST_CMD_FAIL 260 -26 "op_a_retry_fail"
+JCF "FATAL_ERROR"
 
 ; If retry succeeded, continue
 R00:00:10 Ref.cmdStatusTester.TEST_CMD_SUCCESS 270 2.7 false

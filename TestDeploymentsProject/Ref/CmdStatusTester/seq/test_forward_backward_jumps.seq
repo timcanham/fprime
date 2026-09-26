@@ -5,9 +5,9 @@
 LABEL "START"
 R00:00:00 Ref.cmdStatusTester.TEST_CMD_SUCCESS 100 1.0 true
 
-; Jump forward on failure
-JCF "FORWARD_LABEL"
+; Execute failing command, then JCF checks status and jumps forward
 R00:00:05 Ref.cmdStatusTester.TEST_CMD_FAIL 200 -20 "jump_forward"
+JCF "FORWARD_LABEL"
 
 ; Should not reach here
 R00:00:10 Ref.cmdStatusTester.TEST_CMD_SUCCESS 999 99.9 false

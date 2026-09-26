@@ -1,5 +1,5 @@
 // ======================================================================
-// \title  CmdStatusTesterComponentImpl.cpp
+// \title  CmdStatusTester.cpp
 // \author Generated
 // \brief  cpp file for CmdStatusTester component implementation class
 //
@@ -10,8 +10,7 @@
 //
 // ======================================================================
 
-#include <Ref/CmdStatusTester/CmdStatusTesterComponentImpl.hpp>
-#include <FpConfig.hpp>
+#include <Ref/CmdStatusTester/CmdStatusTester.hpp>
 
 namespace Ref {
 
@@ -19,20 +18,20 @@ namespace Ref {
 // Construction, initialization, and destruction
 // ----------------------------------------------------------------------
 
-CmdStatusTesterComponentImpl::CmdStatusTesterComponentImpl(const char* const compName)
+CmdStatusTester::CmdStatusTester(const char* const compName)
     : CmdStatusTesterComponentBase(compName) {}
 
-CmdStatusTesterComponentImpl::~CmdStatusTesterComponentImpl() {}
+CmdStatusTester::~CmdStatusTester() {}
 
 // ----------------------------------------------------------------------
 // Command handler implementations
 // ----------------------------------------------------------------------
 
-void CmdStatusTesterComponentImpl::TEST_CMD_SUCCESS_cmdHandler(const FwOpcodeType opCode,
-                                                                const U32 cmdSeq,
-                                                                U32 arg1,
-                                                                F32 arg2,
-                                                                bool arg3) {
+void CmdStatusTester::TEST_CMD_SUCCESS_cmdHandler(const FwOpcodeType opCode,
+                                                   const U32 cmdSeq,
+                                                   U32 arg1,
+                                                   F32 arg2,
+                                                   bool arg3) {
     // Log the successful command execution
     this->log_ACTIVITY_HI_TEST_CommandSuccess(arg1, arg2, arg3);
 
@@ -40,11 +39,11 @@ void CmdStatusTesterComponentImpl::TEST_CMD_SUCCESS_cmdHandler(const FwOpcodeTyp
     this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 
-void CmdStatusTesterComponentImpl::TEST_CMD_FAIL_cmdHandler(const FwOpcodeType opCode,
-                                                             const U32 cmdSeq,
-                                                             U32 arg1,
-                                                             I16 arg2,
-                                                             const Fw::CmdStringArg& arg3) {
+void CmdStatusTester::TEST_CMD_FAIL_cmdHandler(const FwOpcodeType opCode,
+                                                const U32 cmdSeq,
+                                                U32 arg1,
+                                                I16 arg2,
+                                                const Fw::CmdStringArg& arg3) {
     // Log the failed command execution
     this->log_WARNING_HI_TEST_CommandFailed(arg1, arg2, arg3);
 
