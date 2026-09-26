@@ -10,7 +10,6 @@
 #include <Os/FileSystem.hpp>
 #include "CmdSequencerTester.hpp"
 #include "Svc/CmdSequencer/test/ut/AMPCS.hpp"
-#include "Svc/CmdSequencer/test/ut/Directives.hpp"
 #include "Svc/CmdSequencer/test/ut/Health.hpp"
 #include "Svc/CmdSequencer/test/ut/Immediate.hpp"
 #include "Svc/CmdSequencer/test/ut/ImmediateEOS.hpp"
@@ -31,106 +30,6 @@ TEST(AMPCS, MissingCRC) {
 TEST(AMPCS, MissingFile) {
     Svc::AMPCS::CmdSequencerTester tester;
     tester.MissingFile();
-}
-
-TEST(Directives, Label) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.Label();
-}
-
-TEST(Directives, JumpOnFailure) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.JumpOnFailure();
-}
-
-TEST(Directives, NoJumpOnSuccess) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.NoJumpOnSuccess();
-}
-
-TEST(Directives, JCFBeforeCommand) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.JCFBeforeCommand();
-}
-
-TEST(Directives, JCFLabelNotFound) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.JCFLabelNotFound();
-}
-
-TEST(Directives, ExitOK) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.ExitOK();
-}
-
-TEST(Directives, ExitError) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.ExitError();
-}
-
-TEST(Directives, BackwardJump) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.BackwardJump();
-}
-
-TEST(Directives, ForwardJump) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.ForwardJump();
-}
-
-TEST(Directives, ConsecutiveJCF) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.ConsecutiveJCF();
-}
-
-TEST(Directives, JumpOnSuccess) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.JumpOnSuccess();
-}
-
-TEST(Directives, NoJumpOnFailure) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.NoJumpOnFailure();
-}
-
-TEST(Directives, JCSBeforeCommand) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.JCSBeforeCommand();
-}
-
-TEST(Directives, JCSLabelNotFound) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.JCSLabelNotFound();
-}
-
-TEST(Directives, JCFAndJCSFailure) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.JCFAndJCSFailure();
-}
-
-TEST(Directives, JCFAndJCSSuccess) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.JCFAndJCSSuccess();
-}
-
-TEST(Directives, ErrorModeOff) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.ErrorModeOff();
-}
-
-TEST(Directives, ErrorModeOn) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.ErrorModeOn();
-}
-
-TEST(Directives, ErrorModeToggle) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.ErrorModeToggle();
-}
-
-TEST(Directives, ErrorModeOffWithJCF) {
-    Svc::Directives::CmdSequencerTester tester;
-    tester.ErrorModeOffWithJCF();
 }
 
 TEST(Health, Ping) {

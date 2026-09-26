@@ -729,16 +729,21 @@ class CmdSequencerComponentImpl final : public CmdSequencerComponentBase {
     U32 m_cmdSeq;
     bool m_join_waiting;
 
-    //! Jump Command Failure (JCF) state
+    //! Last command status (for JCF/JCS directives that come after the command)
+    bool m_lastCmdExecuted;          //!< Whether a command has been executed (for detecting JCF/JCS before any command)
+    Fw::CmdResponse m_lastCmdStatus; //!< Status of the last executed command
+
+    //! Jump Command Failure (JCF) state - NO LONGER USED (kept for compatibility)
     bool m_jcfActive;                //!< Whether a JCF is currently set
     Fw::String m_jcfTarget;          //!< Target label for JCF
 
-    //! Jump Command Success (JCS) state
+    //! Jump Command Success (JCS) state - NO LONGER USED (kept for compatibility)
     bool m_jcsActive;                //!< Whether a JCS is currently set
     Fw::String m_jcsTarget;          //!< Target label for JCS
 
     //! Error mode state
     bool m_errorMode;                //!< Whether sequence aborts on command error (true = abort, false = continue)
+    bool m_errorPendingAbort;        //!< Command failed with ERROR_MODE ON, pending abort unless JCF handles it
 
     //! Telemetry to update sequence not running
     const Fw::String NO_SEQ{"<no seq>"};

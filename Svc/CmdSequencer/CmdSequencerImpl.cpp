@@ -38,11 +38,14 @@ CmdSequencerComponentImpl::CmdSequencerComponentImpl(const char* name)
       m_opCode(0),
       m_cmdSeq(0),
       m_join_waiting(false),
+      m_lastCmdExecuted(false),
+      m_lastCmdStatus(Fw::CmdResponse::OK),
       m_jcfActive(false),
       m_jcfTarget(""),
       m_jcsActive(false),
       m_jcsTarget(""),
-      m_errorMode(true) {}  // Default: error mode ON (abort on error)
+      m_errorMode(true),           // Default: error mode ON (abort on error)
+      m_errorPendingAbort(false) {}  // No pending abort initially
 
 void CmdSequencerComponentImpl::setTimeout(const U32 timeout) {
     this->m_timeout = timeout;
@@ -294,7 +297,11 @@ void CmdSequencerComponentImpl::performCmd_Cancel() {
     this->m_cmdTimeoutTimer.clear();
     this->m_executedCount = 0;
 
-    // Clear JCF and JCS state
+    // Clear last command status
+    this->m_lastCmdExecuted = false;
+    this->m_lastCmdStatus = Fw::CmdResponse::OK;
+
+    // Clear JCF and JCS state (kept for compatibility, no longer used)
     this->m_jcfActive = false;
     this->m_jcfTarget = "";
     this->m_jcsActive = false;
@@ -302,6 +309,7 @@ void CmdSequencerComponentImpl::performCmd_Cancel() {
 
     // Reset error mode to default (ON)
     this->m_errorMode = true;
+    this->m_errorPendingAbort = false;  // Clear pending abort flag
 
     // write sequence done port with error, if connected
     if (this->isConnected_seqDone_OutputPort(0)) {
@@ -327,121 +335,55 @@ void CmdSequencerComponentImpl ::cmdResponseIn_handler(FwIndexType portNum,
     } else {
         // clear command timeout
         this->m_cmdTimeoutTimer.clear();
+
+        // Store the last command status for JCF/JCS directives that come next
+        this->m_lastCmdExecuted = true;
+        this->m_lastCmdStatus = response;
+
         if (response != Fw::CmdResponse::OK) {
-            // Command failed
-            if (this->m_jcfActive) {
-                // Jump Command Failure is active, attempt to jump to label
-                this->commandError(this->m_executedCount, opcode, response.e);
+            // Command failed - log error and continue execution to give JCF a chance to handle
+            this->commandError(this->m_executedCount, opcode, response.e);
 
-                if (this->jumpToLabel(this->m_jcfTarget)) {
-                    // Successfully jumped to label
-                    this->log_ACTIVITY_HI_CS_SequenceCanceled(this->m_sequence->getLogFileName());
+            if (this->m_errorMode) {
+                // Error mode is ON - mark that we need to abort unless JCF handles it
+                this->m_errorPendingAbort = true;
+            }
 
-                    // Clear JCF state
-                    this->m_jcfActive = false;
-                    this->m_jcfTarget = "";
-
-                    // Continue execution from label if in auto mode
-                    if (this->m_runMode == RUNNING && this->m_stepMode == AUTO) {
-                        if (this->m_sequence->hasMoreRecords()) {
-                            this->performCmd_Step();
-                        } else {
-                            this->m_runMode = STOPPED;
-                            this->sequenceComplete();
-                        }
-                    }
+            // Continue to next record (which might be a JCF directive)
+            if (this->m_runMode == RUNNING && this->m_stepMode == AUTO) {
+                // Auto mode - continue to next record
+                if (not this->m_sequence->hasMoreRecords()) {
+                    // No data left
+                    this->m_runMode = STOPPED;
+                    this->sequenceComplete();
                 } else {
-                    // Label not found, abort sequence
-                    this->log_WARNING_HI_CS_CommandError(this->m_sequence->getLogFileName(),
-                                                         this->m_executedCount,
-                                                         CmdDispatcherCfg::getEventOpcode(opcode),
-                                                         response.e);
-                    this->m_jcfActive = false;
-                    this->m_jcfTarget = "";
-                    this->performCmd_Cancel();
+                    this->performCmd_Step();
                 }
-            } else if (this->m_errorMode) {
-                // Error mode is ON (abort on error) and no JCF active, abort sequence
-                this->commandError(this->m_executedCount, opcode, response.e);
-                this->performCmd_Cancel();
             } else {
-                // Error mode is OFF (continue on error), log error but continue
-                this->commandError(this->m_executedCount, opcode, response.e);
-
-                if (this->m_runMode == RUNNING && this->m_stepMode == AUTO) {
-                    // Auto mode - continue to next command
-                    if (not this->m_sequence->hasMoreRecords()) {
-                        // No data left
-                        this->m_runMode = STOPPED;
-                        this->sequenceComplete();
-                    } else {
-                        this->performCmd_Step();
-                    }
-                } else {
-                    // Manual step mode - wait for next step command
-                    if (not this->m_sequence->hasMoreRecords()) {
-                        this->m_runMode = STOPPED;
-                        this->sequenceComplete();
-                    }
+                // Manual step mode - wait for next step command
+                if (not this->m_sequence->hasMoreRecords()) {
+                    this->m_runMode = STOPPED;
+                    this->sequenceComplete();
                 }
             }
         } else {
-            // Command succeeded
-            // Clear any active JCF
-            this->m_jcfActive = false;
-            this->m_jcfTarget = "";
-
-            // Check if JCS (Jump Command Success) is active
-            if (this->m_jcsActive) {
-                // Jump Command Success is active, attempt to jump to label
+            // Command succeeded - continue normally
+            if (this->m_runMode == RUNNING && this->m_stepMode == AUTO) {
+                // Auto mode
                 this->commandComplete(opcode);
-
-                if (this->jumpToLabel(this->m_jcsTarget)) {
-                    // Successfully jumped to label
-                    this->log_ACTIVITY_HI_CS_SequenceCanceled(this->m_sequence->getLogFileName());
-
-                    // Clear JCS state
-                    this->m_jcsActive = false;
-                    this->m_jcsTarget = "";
-
-                    // Continue execution from label if in auto mode
-                    if (this->m_runMode == RUNNING && this->m_stepMode == AUTO) {
-                        if (this->m_sequence->hasMoreRecords()) {
-                            this->performCmd_Step();
-                        } else {
-                            this->m_runMode = STOPPED;
-                            this->sequenceComplete();
-                        }
-                    }
+                if (not this->m_sequence->hasMoreRecords()) {
+                    // No data left
+                    this->m_runMode = STOPPED;
+                    this->sequenceComplete();
                 } else {
-                    // Label not found, abort sequence
-                    this->log_WARNING_HI_CS_CommandError(this->m_sequence->getLogFileName(),
-                                                         this->m_executedCount,
-                                                         CmdDispatcherCfg::getEventOpcode(opcode),
-                                                         0);  // No error code for success case
-                    this->m_jcsActive = false;
-                    this->m_jcsTarget = "";
-                    this->performCmd_Cancel();
+                    this->performCmd_Step();
                 }
             } else {
-                // No JCS active, continue normally
-                if (this->m_runMode == RUNNING && this->m_stepMode == AUTO) {
-                    // Auto mode
-                    this->commandComplete(opcode);
-                    if (not this->m_sequence->hasMoreRecords()) {
-                        // No data left
-                        this->m_runMode = STOPPED;
-                        this->sequenceComplete();
-                    } else {
-                        this->performCmd_Step();
-                    }
-                } else {
-                    // Manual step mode
-                    this->commandComplete(opcode);
-                    if (not this->m_sequence->hasMoreRecords()) {
-                        this->m_runMode = STOPPED;
-                        this->sequenceComplete();
-                    }
+                // Manual step mode
+                this->commandComplete(opcode);
+                if (not this->m_sequence->hasMoreRecords()) {
+                    this->m_runMode = STOPPED;
+                    this->sequenceComplete();
                 }
             }
         }
@@ -561,6 +503,15 @@ void CmdSequencerComponentImpl::performCmd_Step() {
     this->m_record.m_timeTag.setTimeBase(header.m_timeBase);
     this->m_record.m_timeTag.setTimeContext(header.m_timeContext);
 
+    // Check if we have a pending abort from ERROR_MODE ON
+    // If the next record is a command (not a directive), abort now
+    if (this->m_errorPendingAbort && this->m_record.m_descriptor != Sequence::Record::SEQUENCE_DIRECTIVE) {
+        // Command failed with ERROR_MODE ON, and next record is not a directive - abort
+        this->m_errorPendingAbort = false;  // Clear flag
+        this->performCmd_Cancel();
+        return;
+    }
+
     Fw::Time currentTime = this->getTime();
     switch (this->m_record.m_descriptor) {
         case Sequence::Record::END_OF_SEQUENCE:
@@ -605,6 +556,10 @@ void CmdSequencerComponentImpl::sequenceComplete(const Fw::CmdResponse& status) 
     this->log_ACTIVITY_HI_CS_SequenceComplete(this->m_sequence->getLogFileName());
     this->tlmWrite_CS_SequencesCompleted(this->m_sequencesCompletedCount);
     this->m_executedCount = 0;
+
+    // Clear last command status
+    this->m_lastCmdExecuted = false;
+    this->m_lastCmdStatus = Fw::CmdResponse::OK;
 
     // Reset error mode to default (ON)
     this->m_errorMode = true;
@@ -684,6 +639,15 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
 
     Sequence::Record::DirectiveId directive = static_cast<Sequence::Record::DirectiveId>(directiveId);
 
+    // Check if we have a pending abort (from ERROR_MODE ON + command failure)
+    // If the next directive is not JCF, abort the sequence now
+    if (this->m_errorPendingAbort && directive != Sequence::Record::JCF) {
+        // Command failed with ERROR_MODE ON, and no JCF is handling it - abort
+        this->m_errorPendingAbort = false;  // Clear flag
+        this->performCmd_Cancel();
+        return false;
+    }
+
     switch (directive) {
         case Sequence::Record::LABEL: {
             // LABEL is a no-op at execution time
@@ -691,9 +655,9 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
             break;
         }
         case Sequence::Record::JCF: {
-            // JCF: Jump Command Failure
-            // Check if this is before any command has executed
-            if (this->m_executedCount == 0) {
+            // JCF: Jump Command Failure - checks the PREVIOUS command's status
+            // Check if any command has executed yet
+            if (!this->m_lastCmdExecuted) {
                 this->log_WARNING_HI_CS_InvalidMode();
                 this->error();
                 return false;
@@ -725,9 +689,26 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
             }
             labelBuf[readSize] = '\0';
 
-            // Store the JCF target
-            this->m_jcfTarget = labelBuf;
-            this->m_jcfActive = true;
+            // Check if the last command failed
+            if (this->m_lastCmdStatus != Fw::CmdResponse::OK) {
+                // Last command failed - jump to the label
+                Fw::String targetLabel(labelBuf);
+                if (this->jumpToLabel(targetLabel)) {
+                    // Successfully jumped to label - JCF handled the error
+                    this->m_errorPendingAbort = false;  // Clear pending abort - error was handled
+                    this->log_ACTIVITY_HI_CS_SequenceCanceled(this->m_sequence->getLogFileName());
+                    // No need to continue here - jumpToLabel already positions us at the label
+                } else {
+                    // Label not found, abort sequence
+                    this->log_WARNING_HI_CS_CommandError(this->m_sequence->getLogFileName(),
+                                                         this->m_executedCount,
+                                                         0,  // No opcode available here
+                                                         this->m_lastCmdStatus.e);
+                    this->error();
+                    return false;
+                }
+            }
+            // If last command succeeded, JCF is ignored and execution continues normally
             break;
         }
         case Sequence::Record::EXIT: {
@@ -755,9 +736,9 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
             break;
         }
         case Sequence::Record::JCS: {
-            // JCS: Jump Command Success
-            // Check if this is before any command has executed
-            if (this->m_executedCount == 0) {
+            // JCS: Jump Command Success - checks the PREVIOUS command's status
+            // Check if any command has executed yet
+            if (!this->m_lastCmdExecuted) {
                 this->log_WARNING_HI_CS_InvalidMode();
                 this->error();
                 return false;
@@ -789,9 +770,25 @@ bool CmdSequencerComponentImpl ::executeDirective(const Sequence::Record& record
             }
             labelBuf[readSize] = '\0';
 
-            // Store the JCS target
-            this->m_jcsTarget = labelBuf;
-            this->m_jcsActive = true;
+            // Check if the last command succeeded
+            if (this->m_lastCmdStatus == Fw::CmdResponse::OK) {
+                // Last command succeeded - jump to the label
+                Fw::String targetLabel(labelBuf);
+                if (this->jumpToLabel(targetLabel)) {
+                    // Successfully jumped to label
+                    this->log_ACTIVITY_HI_CS_SequenceCanceled(this->m_sequence->getLogFileName());
+                    // No need to continue here - jumpToLabel already positions us at the label
+                } else {
+                    // Label not found, abort sequence
+                    this->log_WARNING_HI_CS_CommandError(this->m_sequence->getLogFileName(),
+                                                         this->m_executedCount,
+                                                         0,  // No opcode available here
+                                                         this->m_lastCmdStatus.e);
+                    this->error();
+                    return false;
+                }
+            }
+            // If last command failed, JCS is ignored and execution continues normally
             break;
         }
         case Sequence::Record::ERROR_MODE: {

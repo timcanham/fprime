@@ -250,14 +250,15 @@ Arguments | Variable | Directive-specific arguments
    - Behavior: No-op when executed; serves as a jump target
    - Multiple LABELs may exist in a sequence and must have unique names
 
-2. **JCF (Jump Command Failure)** (Directive ID = 1): Specifies a LABEL to jump to if the immediately preceding command fails.
+2. **JCF (Jump Command Failure)** (Directive ID = 1): Specifies a LABEL to jump to if the previous command failed.
    - Arguments: Text string (target label name, max 20 characters)
-   - Behavior: If the last executed command returns a failed status, the sequencer jumps to the specified LABEL instead of aborting the sequence. If the command succeeds, the JCF is ignored and execution continues normally.
-   - Scope: Applies only to the immediately preceding command
+   - Placement: Must appear AFTER the command whose status it checks
+   - Behavior: When executed, the JCF directive checks the status of the previously executed command. If that command returned a failed status, the sequencer jumps to the specified LABEL instead of aborting the sequence. If the command succeeded, execution continues normally.
+   - Scope: Checks the immediately preceding command
    - Error Conditions:
      - If JCF is encountered before any command has executed, the sequence aborts with an error event
      - If the target LABEL is not found at runtime, the sequence aborts with an error event
-     - The sequence file generator tool should validate that all referenced labels exist in the sequence
+     - The sequence file generator tool validates that all referenced labels exist in the sequence
 
 3. **EXIT** (Directive ID = 2): Terminates the sequence with a specified completion status.
    - Arguments: U8 status code (0 = OK, 1 = EXECUTION_ERROR)
@@ -267,10 +268,11 @@ Arguments | Variable | Directive-specific arguments
      - Error handling paths that should return specific status codes
      - Conditional sequence execution flows
 
-4. **JCS (Jump Command Success)** (Directive ID = 3): Specifies a LABEL to jump to if the immediately preceding command succeeds.
+4. **JCS (Jump Command Success)** (Directive ID = 3): Specifies a LABEL to jump to if the previous command succeeded.
    - Arguments: Text string (target label name, max 20 characters)
-   - Behavior: If the last executed command returns a successful status (OK), the sequencer jumps to the specified LABEL. If the command fails, the JCS is ignored and the sequence aborts as normal (unless a JCF is also active).
-   - Scope: Applies only to the immediately preceding command
+   - Placement: Must appear AFTER the command whose status it checks
+   - Behavior: When executed, the JCS directive checks the status of the previously executed command. If that command returned a successful status (OK), the sequencer jumps to the specified LABEL. If the command failed, the sequence aborts as normal (unless a JCF is also present and processes first).
+   - Scope: Checks the immediately preceding command
    - Use Cases:
      - Conditional execution paths based on command success
      - Skipping error handling code when operations succeed
@@ -278,12 +280,12 @@ Arguments | Variable | Directive-specific arguments
    - Error Conditions:
      - If JCS is encountered before any command has executed, the sequence aborts with an error event
      - If the target LABEL is not found at runtime, the sequence aborts with an error event
-     - The sequence file generator tool should validate that all referenced labels exist in the sequence
-   - Note: JCS and JCF can both be active for the same command. If both are present, only one will execute depending on the command result (JCF on failure, JCS on success)
+     - The sequence file generator tool validates that all referenced labels exist in the sequence
+   - Note: JCS and JCF can both appear after the same command. If both are present, only one will execute depending on the command result (JCF on failure, JCS on success)
 
 5. **ERROR_MODE** (Directive ID = 4): Controls whether the sequence aborts on command failure.
    - Arguments: U8 mode (0 = OFF/continue on error, 1 = ON/abort on error)
-   - Behavior: Sets the error handling mode for all subsequent commands. When ERROR_MODE is ON (1), command failures cause the sequence to abort (unless a JCF directive is active for that command). When ERROR_MODE is OFF (0), command failures are logged but the sequence continues to the next command (JCF directives are still honored if present).
+   - Behavior: Sets the error handling mode for all subsequent commands. When ERROR_MODE is ON (1), command failures cause the sequence to abort (unless a JCF directive after that command processes the failure). When ERROR_MODE is OFF (0), command failures are logged but the sequence continues to the next command (JCF directives after failed commands are still honored if present).
    - Scope: Persistent - affects all subsequent commands until the next ERROR_MODE directive
    - Default: ERROR_MODE is ON (abort on error) at the start of each sequence
    - Use Cases:
@@ -299,10 +301,12 @@ Arguments | Variable | Directive-specific arguments
      - A new sequence is loaded
 
 **Directive State Management:**
-- When a JCF directive is executed, the target label is stored in component state
-- After the next command completes, if it failed and a JCF is active, the sequencer searches for the matching LABEL and jumps to the record immediately following it
-- If the command succeeds, the JCF state is cleared
-- Multiple consecutive JCF directives will result in only the last one being active
+- Command status is stored after each command execution
+- When a JCF directive is executed, it checks the stored status of the previous command
+- If the previous command failed, the sequencer searches for the matching LABEL and jumps to the record immediately following it
+- When a JCS directive is executed, it checks the stored status of the previous command
+- If the previous command succeeded, the sequencer searches for the matching LABEL and jumps to the record immediately following it
+- Multiple consecutive JCF or JCS directives after the same command will all check that command's status - the first matching directive will jump
 - Jump direction is unrestricted (forward or backward jumps are allowed)
 - No loop prevention mechanism is provided; sequence writers must avoid infinite loops
 
@@ -396,11 +400,11 @@ Marks a position in the sequence that can be jumped to. The label name is a stri
 
 `JCF "label_name"`
 
-Jump to the specified LABEL if the immediately preceding command fails. JCF must follow a command.
+Jump to the specified LABEL if the previous command failed. Must appear AFTER the command whose status it checks.
 
 `JCS "label_name"`
 
-Jump to the specified LABEL if the immediately preceding command succeeds. JCS must follow a command.
+Jump to the specified LABEL if the previous command succeeded. Must appear AFTER the command whose status it checks.
 
 `EXIT status_code`
 
@@ -418,16 +422,16 @@ Example 1: Simple sequence with error handler using JCF
 R00:00:00 CMD_POWER_ON
 R00:00:05 CMD_INITIALIZE
 
-; Attempt risky operation with error handler
-JCF "ERROR_HANDLER"
+; Attempt risky operation, then JCF checks if it failed
 R00:00:10 CMD_RISKY_OPERATION
+JCF "ERROR_HANDLER"
 
-; Normal execution path
+; Normal execution path (if CMD_RISKY_OPERATION succeeded)
 R00:00:15 CMD_CONTINUE
 R00:00:20 CMD_FINALIZE
 EXIT 0
 
-; Error handler - jumps here if CMD_RISKY_OPERATION fails
+; Error handler - JCF jumps here if CMD_RISKY_OPERATION failed
 LABEL "ERROR_HANDLER"
 R00:00:00 CMD_SAFE_MODE
 R00:00:05 CMD_LOG_ERROR
@@ -452,16 +456,16 @@ R00:00:20 CMD_FINALIZE_TEST
 
 Example 3: Using JCS for conditional execution
 ```
-; Attempt optional optimization
-JCS "OPTIMIZED_PATH"
+; Attempt optional optimization, then JCS checks if it succeeded
 R00:00:00 CMD_TRY_OPTIMIZE
+JCS "OPTIMIZED_PATH"
 
-; Fallback path if optimization fails
+; Fallback path (if optimization failed or was skipped)
 R00:00:05 CMD_STANDARD_OPERATION
 R00:00:10 CMD_CONTINUE
 EXIT 0
 
-; Optimized path - only if CMD_TRY_OPTIMIZE succeeds
+; Optimized path - JCS jumps here if CMD_TRY_OPTIMIZE succeeded
 LABEL "OPTIMIZED_PATH"
 R00:00:00 CMD_FAST_OPERATION
 EXIT 0
@@ -472,13 +476,13 @@ Example 4: Complex error handling with multiple labels
 ; Main sequence
 R00:00:00 CMD_START
 
-; First critical operation
-JCF "RETRY_A"
+; First critical operation, JCF checks its status
 R00:00:05 CMD_OPERATION_A
+JCF "RETRY_A"
 
-; Second critical operation
-JCF "RETRY_B"
+; Second critical operation, JCF checks its status
 R00:00:10 CMD_OPERATION_B
+JCF "RETRY_B"
 
 ; Success path
 R00:00:15 CMD_SUCCESS
@@ -487,19 +491,19 @@ EXIT 0
 ; Retry handler for operation A
 LABEL "RETRY_A"
 R00:00:00 CMD_RESET
-JCF "FATAL_ERROR"
 R00:00:05 CMD_OPERATION_A
-; If retry succeeds, continue with operation B
-JCF "RETRY_B"
+JCF "FATAL_ERROR"
+; If retry succeeded, continue with operation B
 R00:00:10 CMD_OPERATION_B
+JCF "RETRY_B"
 R00:00:15 CMD_SUCCESS
 EXIT 0
 
 ; Retry handler for operation B
 LABEL "RETRY_B"
 R00:00:00 CMD_RESET_B
-JCF "FATAL_ERROR"
 R00:00:05 CMD_OPERATION_B
+JCF "FATAL_ERROR"
 R00:00:10 CMD_SUCCESS
 EXIT 0
 
