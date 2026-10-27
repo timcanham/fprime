@@ -19,3 +19,19 @@ register_fprime_module(
     Svc_Sched
     Svc_Ping
 )
+
+### Unit Tests ###
+register_fprime_ut(
+  AUTOCODER_INPUTS
+    "${CMAKE_CURRENT_LIST_DIR}/StartupSeq.fpp"
+  SOURCES
+    "${CMAKE_CURRENT_LIST_DIR}/test/ut/StartupSeqTestMain.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/test/ut/StartupSeqTester.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/test/ut/TestState/TestState.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/test/ut/Rules/Tick.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/test/ut/Rules/Commands.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/test/ut/Rules/SeqDone.cpp"
+  DEPENDS
+    STest
+  UT_AUTO_HELPERS
+)

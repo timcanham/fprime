@@ -333,20 +333,37 @@ another component's hardcoded IDs.
 
 ### Verification Status
 
-> [!WARNING]
-> **No unit tests exist yet.** The Verification Method column above states the method
-> each requirement is *to be* verified by, not work that has been done. The module
-> registers no `register_fprime_ut` target and has no `test/ut/` directory, so nothing
-> in this component is verified beyond the fact that the model and implementation
-> compile. The requirements marked "Unit Test" are the test plan for the unit-test
-> phase.
+Unit tests live in `test/ut/` and are registered as `Svc_StartupSeq_ut_exe`. They pass
+with **100% line coverage** of `StartupSeq.cpp` (171/171), measured with
+`fprime-util check --coverage`.
 
-The state machine makes the transition table directly testable: each requirement that
-names a state transition maps to sending one signal in one starting state and asserting
-the resulting state, events and command response. The cases most worth covering first
-are the ones a reviewer already found defects in — a tick in `DELAYING` after the
-sequence file is cleared (REQ-StartupSeq-037), and a parameter update arriving between
-ticks (REQ-StartupSeq-038).
+The suite is **rule-based** (per `fprime-unit-testing` §3: the component is stateful with
+multiple interacting ports), backed by traditional per-requirement tests:
+
+| File | Contents |
+|---|---|
+| `test/ut/TestState/TestState.hpp` | Shadow model: an independent prediction of the state machine, written from the requirements rather than from the implementation |
+| `test/ut/Rules/Tick.cpp` | `schedIn` and time-base establishment rules |
+| `test/ut/Rules/Commands.cpp` | The three commands and the state-dependent accept/reject matrix |
+| `test/ut/Rules/SeqDone.cpp` | Sequence outcome reporting on `seqDoneIn` |
+| `test/ut/StartupSeqTester.cpp` | Helpers and 19 traditional per-requirement tests |
+| `test/ut/StartupSeqTestMain.cpp` | `TEST` cases with `REQUIREMENT` tags, plus three randomized scenarios |
+
+The three randomized scenarios run 2000 rule applications each across different
+configurations (no time base precondition; time base plus delay; time base with no
+delay). Because the shadow model predicts each transition independently, a disagreement
+in state, events or port output fails the run rather than being silently accepted.
+
+Requirements verified by test rather than inspection carry a `REQUIREMENT("StartupSeq-NNN")`
+tag in `StartupSeqTestMain.cpp`, so the mapping from requirement to test is machine-readable.
+REQ-StartupSeq-029 (event traceability) and REQ-StartupSeq-030's rationale remain
+inspection items.
+
+**Note on the test harness.** A port invocation or command is one queued message, and
+the state machine signal it sends is a second. A single `doDispatch()` therefore leaves
+the signal unprocessed and the state machine unadvanced; the tester's `drainQueue()`
+helper dispatches until the queue is empty. This is worth knowing before adding tests —
+the first draft of this suite failed every state assertion for exactly this reason.
 
 ### Implementation Notes
 
